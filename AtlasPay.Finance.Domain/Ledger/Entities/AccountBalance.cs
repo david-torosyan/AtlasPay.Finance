@@ -30,4 +30,44 @@ public class AccountBalance
 
         return new AccountBalance(ledgerAccountId, currency);
     }
+
+    public void Debit(Money amount)
+    {
+        ValidateAmount(amount);
+
+        if (Balance.Amount < amount.Amount)
+            throw new InvalidOperationException(
+                "Insufficient funds.");
+
+        Balance = new Money(
+            Balance.Amount - amount.Amount,
+            Balance.Currency);
+
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void Credit(Money amount)
+    {
+        ValidateAmount(amount);
+
+        Balance = new Money(
+            Balance.Amount + amount.Amount,
+            Balance.Currency);
+
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    private void ValidateAmount(Money amount)
+    {
+        ArgumentNullException.ThrowIfNull(amount);
+
+        if (amount.Amount <= 0)
+            throw new ArgumentException(
+                "Amount must be greater than zero.",
+                nameof(amount));
+
+        if (Balance.Currency != amount.Currency)
+            throw new InvalidOperationException(
+                "Currency mismatch.");
+    }
 }

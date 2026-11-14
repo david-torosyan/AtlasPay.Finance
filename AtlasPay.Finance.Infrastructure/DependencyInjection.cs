@@ -1,4 +1,6 @@
-﻿using AtlasPay.Finance.Infrastructure.Persistence;
+﻿using AtlasPay.Finance.Application.Abstractions.Persistence;
+using AtlasPay.Finance.Infrastructure.Persistence;
+using AtlasPay.Finance.Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,6 +22,18 @@ public static class DependencyInjection
         {
             options.UseNpgsql(connectionString);
         });
+
+        services.AddScoped<IUnitOfWork>(sp =>
+            sp.GetRequiredService<FinanceDbContext>());
+
+        services.AddScoped<IAccountRepository, AccountRepository>();
+        services.AddScoped<IAccountReadRepository, AccountReadRepository>();
+        services.AddScoped<ILedgerAccountRepository, LedgerAccountRepository>();
+        services.AddScoped<IAccountBalanceRepository, AccountBalanceRepository>();
+        services.AddScoped<ITransferRepository, TransferRepository>();
+        services.AddScoped<IAccountLockRepository, AccountLockRepository>();
+        services.AddScoped<ITransferLedgerRepository, TransferLedgerRepository>();
+        services.AddScoped<ILedgerTransactionRepository, LedgerTransactionRepository>();
 
         return services;
     }

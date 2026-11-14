@@ -15,10 +15,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\AtlasPay.Finance.Application\AtlasPay.Finance.Application.csproj" />
     <ProjectReference Include="..\AtlasPay.Finance.Infrastructure\AtlasPay.Finance.Infrastructure.csproj" />
   </ItemGroup>

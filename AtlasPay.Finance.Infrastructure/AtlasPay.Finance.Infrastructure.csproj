@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\AtlasPay.Finance.Application\AtlasPay.Finance.Application.csproj" />
     <ProjectReference Include="..\AtlasPay.Finance.Domain\AtlasPay.Finance.Domain.csproj" />
   </ItemGroup>
 
