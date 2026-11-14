@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="Accounts\Events\" />
+    <Folder Include="Common\Entities\" />
+    <Folder Include="Common\Exceptions\" />
+    <Folder Include="Common\ValueObjects\" />
+    <Folder Include="Transfers\Entities\" />
+    <Folder Include="Transfers\Events\" />
+  </ItemGroup>
+
+</Project>
