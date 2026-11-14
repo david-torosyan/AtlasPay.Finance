@@ -363,3 +363,4 @@ MigrationBackup/
 FodyWeavers.xsd
 /.env
 /AtlasPay.Finance.Infrastructure/Persistence/Migrations
+/InitialFinanceSchema.sql
