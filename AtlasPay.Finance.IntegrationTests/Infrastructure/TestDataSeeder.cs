@@ -85,10 +85,12 @@ public static class TestDataSeeder
 
         // 6. Update customer liability balances.
         annaBalance.Credit(
-            new Money(10_000m, Currency.AMD));
+            new Money(10_000m, Currency.AMD),
+            LedgerAccountType.Liability);
 
         bobBalance.Credit(
-            new Money(5_000m, Currency.AMD));
+            new Money(5_000m, Currency.AMD),
+            LedgerAccountType.Liability);
 
         // 7. Stage all entities for insertion.
         db.Accounts.AddRange(anna, bob);

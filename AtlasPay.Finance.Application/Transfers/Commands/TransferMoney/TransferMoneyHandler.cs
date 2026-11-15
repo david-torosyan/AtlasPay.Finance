@@ -104,6 +104,13 @@ public sealed class TransferMoneyHandler(
                         command.ToAccountId,
                         token);
 
+                if (source.LedgerAccount.Type != LedgerAccountType.Liability ||
+                    destination.LedgerAccount.Type != LedgerAccountType.Liability)
+                {
+                    throw new InvalidOperationException(
+                        "Transfers require customer liability accounts.");
+                }
+
                 if (source.LedgerAccount.Currency != amount.Currency ||
                         destination.LedgerAccount.Currency != amount.Currency ||
                         source.Balance.Balance.Currency != amount.Currency ||
@@ -132,8 +139,13 @@ public sealed class TransferMoneyHandler(
 
                 // 9. Update tracked balances.
                 // Debit validates sufficient funds.
-                source.Balance.Debit(amount);
-                destination.Balance.Credit(amount);
+                source.Balance.Debit(
+                    amount,
+                    source.LedgerAccount.Type);
+
+                destination.Balance.Credit(
+                    amount,
+                    source.LedgerAccount.Type);
 
                 // 10. Complete business transfer.
                 transfer.Complete();

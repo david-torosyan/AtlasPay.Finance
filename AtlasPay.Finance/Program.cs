@@ -5,6 +5,8 @@ using AtlasPay.Finance.Application.Accounts.Commands.UnfreezeAccount;
 using AtlasPay.Finance.Application.Accounts.Queries.GetAccount;
 using AtlasPay.Finance.Application.Accounts.Queries.GetAccountBalance;
 using AtlasPay.Finance.Application.Transfers.Commands.TransferMoney;
+using AtlasPay.Finance.Application.Transfers.Queries.GetAccountTransactions;
+using AtlasPay.Finance.Application.Transfers.Queries.GetTransfer;
 using AtlasPay.Finance.Exceptions;
 using AtlasPay.Finance.Infrastructure;
 using System.Text.Json.Serialization;
@@ -29,6 +31,8 @@ builder.Services.AddScoped<FreezeAccountHandler>();
 builder.Services.AddScoped<UnfreezeAccountHandler>();
 builder.Services.AddScoped<GetAccountBalanceHandler>();
 builder.Services.AddScoped<TransferMoneyHandler>();
+builder.Services.AddScoped<GetTransferHandler>();
+builder.Services.AddScoped<GetAccountTransactionsHandler>();
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();

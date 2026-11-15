@@ -34,6 +34,7 @@ public static class DependencyInjection
         services.AddScoped<IAccountLockRepository, AccountLockRepository>();
         services.AddScoped<ITransferLedgerRepository, TransferLedgerRepository>();
         services.AddScoped<ILedgerTransactionRepository, LedgerTransactionRepository>();
+        services.AddScoped<ITransferReadRepository, TransferReadRepository>();
 
         return services;
     }

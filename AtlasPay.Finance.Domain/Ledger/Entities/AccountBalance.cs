@@ -31,29 +31,46 @@ public class AccountBalance
         return new AccountBalance(ledgerAccountId, currency);
     }
 
-    public void Debit(Money amount)
+    public void Debit(
+        Money amount,
+        LedgerAccountType accountType)
     {
-        ValidateAmount(amount);
-
-        if (Balance.Amount < amount.Amount)
-            throw new InvalidOperationException(
-                "Insufficient funds.");
-
-        Balance = new Money(
-            Balance.Amount - amount.Amount,
-            Balance.Currency);
-
-        UpdatedAt = DateTimeOffset.UtcNow;
+        Apply(amount, accountType, PostingDirection.Debit);
     }
 
-    public void Credit(Money amount)
+    public void Credit(
+        Money amount,
+        LedgerAccountType accountType)
+    {
+        Apply(amount, accountType, PostingDirection.Credit);
+    }
+
+    private void Apply(
+        Money amount,
+        LedgerAccountType accountType,
+        PostingDirection direction)
     {
         ValidateAmount(amount);
 
-        Balance = new Money(
-            Balance.Amount + amount.Amount,
-            Balance.Currency);
+        if (!Enum.IsDefined(accountType))
+            throw new ArgumentOutOfRangeException(nameof(accountType));
 
+        if (!Enum.IsDefined(direction))
+            throw new ArgumentOutOfRangeException(nameof(direction));
+
+        var debitIncreases =
+            accountType is LedgerAccountType.Asset
+                or LedgerAccountType.Expense;
+
+        var increase = direction == PostingDirection.Debit
+            ? debitIncreases
+            : !debitIncreases;
+        
+        var newAmount = increase
+            ? Balance.Amount + amount.Amount
+            : Balance.Amount - amount.Amount;
+
+        Balance = new Money(newAmount, Balance.Currency);
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 

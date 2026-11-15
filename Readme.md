@@ -11,3 +11,15 @@ flowchart TB
     INFRA --> DOMAIN
 
     style DOMAIN fill:#dcfce7,color:#166534,stroke:#16a34a
+
+
+    Endpoint	Purpose
+POST /api/accounts	Create account
+GET /api/accounts/{id}	Get account
+POST /api/accounts/{id}/activate	Activate account
+POST /api/accounts/{id}/freeze	Freeze account
+POST /api/accounts/{id}/unfreeze	Unfreeze account
+GET /api/accounts/{id}/balance	Get balance
+POST /api/transfers	Transfer money
+GET /api/transfers/{id}	Get transfer details
+GET /api/accounts/{id}/transactions	Paginated transfer history
