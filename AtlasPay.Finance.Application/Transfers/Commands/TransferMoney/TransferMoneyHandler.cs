@@ -122,7 +122,9 @@ public sealed class TransferMoneyHandler(
 
                 // 7. Create double-entry ledger transaction.
                 var ledgerTransaction =
-                    LedgerTransaction.Create(transfer.Id);
+                    LedgerTransaction.Create(
+                        transfer.Id,
+                        LedgerTransactionType.Transfer);
 
                 ledgerTransaction.AddPosting(
                     source.LedgerAccount.Id,

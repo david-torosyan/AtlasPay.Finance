@@ -1,6 +1,7 @@
 ﻿using AtlasPay.Finance.Application.Abstractions.Persistence;
 using AtlasPay.Finance.Infrastructure.Persistence;
 using AtlasPay.Finance.Infrastructure.Persistence.Repositories;
+using AtlasPay.Finance.Infrastructure.Persistence.Seeders;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -35,6 +36,13 @@ public static class DependencyInjection
         services.AddScoped<ITransferLedgerRepository, TransferLedgerRepository>();
         services.AddScoped<ILedgerTransactionRepository, LedgerTransactionRepository>();
         services.AddScoped<ITransferReadRepository, TransferReadRepository>();
+        services.AddScoped<IDepositRepository, DepositRepository>();
+        services.AddScoped<IInternalLedgerRepository, InternalLedgerRepository>();
+        services.AddScoped<IAtomicBalanceRepository, AtomicBalanceRepository>();
+        services.AddScoped<IWithdrawalRepository, WithdrawalRepository>();
+        services.AddScoped<ITransferReversalRepository, TransferReversalRepository>();
+
+        services.AddScoped<InternalLedgerBootstrapper>();
 
         return services;
     }

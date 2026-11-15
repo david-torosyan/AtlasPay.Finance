@@ -7,6 +7,26 @@ namespace AtlasPay.Finance.Infrastructure.Persistence.Repositories;
 public sealed class AccountLockRepository(
     FinanceDbContext dbContext) : IAccountLockRepository
 {
+    public async Task<Account> LockAccountAsync(
+        Guid accountId,
+        CancellationToken ct = default)
+    {
+        if (accountId == Guid.Empty)
+            throw new ArgumentException(
+                "Account ID cannot be empty.",
+                nameof(accountId));
+
+        var accounts = await dbContext.Accounts
+                .FromSqlInterpolated(
+                    $"""SELECT * FROM accounts WHERE "Id" = {accountId} FOR UPDATE""")
+                .AsTracking()
+                .ToListAsync(ct);
+
+        return accounts.SingleOrDefault()
+        ?? throw new InvalidOperationException(
+            "Account not found.");
+    }
+
     public async Task<IReadOnlyList<Account>> LockAccountsAsync(
         Guid firstAccountId,
         Guid secondAccountId,

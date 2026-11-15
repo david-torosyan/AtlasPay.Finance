@@ -8,10 +8,13 @@ public class LedgerTransaction
 
     private LedgerTransaction() { } // For EF Core
 
-    private LedgerTransaction(Guid referenceId)
+    private LedgerTransaction(
+        Guid referenceId,
+        LedgerTransactionType type)
     {
         Id = Guid.NewGuid();
         ReferenceId = referenceId;
+        Type = type;
         CreatedAt = DateTimeOffset.UtcNow;
     }
 
@@ -26,14 +29,77 @@ public class LedgerTransaction
     public IReadOnlyCollection<LedgerPosting> Postings =>
         _postings.AsReadOnly();
 
-    public static LedgerTransaction Create(Guid referenceId)
+    public LedgerTransactionType Type { get; private set; }
+    public Guid? ReversesTransactionId { get; private set; }
+
+    public static LedgerTransaction Create(
+        Guid referenceId,
+        LedgerTransactionType type)
     {
         if (referenceId == Guid.Empty)
             throw new ArgumentException(
-                "Reference ID cannot be empty.",
+                "ReferenceId cannot be empty.",
                 nameof(referenceId));
 
-        return new LedgerTransaction(referenceId);
+        if (!Enum.IsDefined(type))
+            throw new ArgumentOutOfRangeException(nameof(type));
+
+        if (type == LedgerTransactionType.Reversal)
+            throw new InvalidOperationException(
+                "Use CreateReversal for reversal transactions.");
+
+        return new LedgerTransaction(referenceId, type);
+    }
+
+    public static LedgerTransaction CreateReversal(
+        Guid reversalId,
+        LedgerTransaction original)
+    {
+        if (reversalId == Guid.Empty)
+            throw new ArgumentException(
+                "Reversal ID cannot be empty.",
+                nameof(reversalId));
+
+        ArgumentNullException.ThrowIfNull(original);
+
+        if (!original.IsPosted)
+            throw new InvalidOperationException(
+                "Only posted transactions can be reversed.");
+
+        if (original.Type != LedgerTransactionType.Transfer)
+            throw new InvalidOperationException(
+                "Only transfer reversals are currently supported.");
+
+        var reversal = new LedgerTransaction(
+            reversalId,
+            LedgerTransactionType.Reversal)
+        {
+            ReversesTransactionId = original.Id
+        };
+
+        foreach (var posting in original.Postings)
+        {
+            var oppositeDirection = posting.Direction switch
+            {
+                PostingDirection.Debit =>
+                    PostingDirection.Credit,
+
+                PostingDirection.Credit =>
+                    PostingDirection.Debit,
+
+                _ => throw new InvalidOperationException(
+                    "Invalid posting direction.")
+            };
+
+            reversal.AddPosting(
+                posting.LedgerAccountId,
+                oppositeDirection,
+                posting.Amount);
+        }
+
+        reversal.Post();
+
+        return reversal;
     }
 
     public void AddPosting(

@@ -23,3 +23,7 @@ GET /api/accounts/{id}/balance	Get balance
 POST /api/transfers	Transfer money
 GET /api/transfers/{id}	Get transfer details
 GET /api/accounts/{id}/transactions	Paginated transfer history
+
+dotnet ef migrations add AddWithdrawals --project AtlasPay.Finance.Infrastructure --startup-project AtlasPay.Finance --context FinanceDbContext --output-dir Persistence/Migrations
+
+dotnet ef database update --project AtlasPay.Finance.Infrastructure --startup-project AtlasPay.Finance --context FinanceDbContext

@@ -8,4 +8,8 @@ public interface IAccountLockRepository
         Guid firstAccountId,
         Guid secondAccountId,
         CancellationToken ct = default);
+
+    Task<Account> LockAccountAsync(
+        Guid accountId,
+        CancellationToken ct = default);
 }

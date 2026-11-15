@@ -26,6 +26,20 @@ public sealed class LedgerTransactionConfiguration
         builder.Property(x => x.IsPosted)
             .IsRequired();
 
+        builder.Property(x => x.Type)
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .IsRequired();
+
+        builder.Property(x => x.ReversesTransactionId)
+            .IsRequired(false);
+
+        builder.HasOne<LedgerTransaction>()
+            .WithOne()
+            .HasForeignKey<LedgerTransaction>(
+                x => x.ReversesTransactionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(x => x.ReferenceId)
             .IsUnique();
 
@@ -36,5 +50,9 @@ public sealed class LedgerTransactionConfiguration
 
         builder.Navigation(x => x.Postings)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasIndex(x => x.ReversesTransactionId)
+            .IsUnique()
+            .HasFilter("\"ReversesTransactionId\" IS NOT NULL");
     }
 }

@@ -37,8 +37,8 @@ public static class TestDataSeeder
             Currency.AMD);
 
         // 3. Create a bank-owned cash asset ledger account.
-        var cashLedger = LedgerAccount.Create(
-            null,
+        var cashLedger = LedgerAccount.CreateInternal(
+            LedgerAccountCode.CashAmd,
             LedgerAccountType.Asset,
             Currency.AMD);
 
@@ -54,7 +54,8 @@ public static class TestDataSeeder
         // 5. Simulate initial funding with balanced ledger entries.
 
         var annaFunding = LedgerTransaction.Create(
-            Guid.NewGuid());
+            Guid.NewGuid(),
+            LedgerTransactionType.Transfer);
 
         annaFunding.AddPosting(
             cashLedger.Id,
@@ -69,7 +70,8 @@ public static class TestDataSeeder
         annaFunding.Post();
 
         var bobFunding = LedgerTransaction.Create(
-            Guid.NewGuid());
+            Guid.NewGuid(),
+            LedgerTransactionType.Transfer);
 
         bobFunding.AddPosting(
             cashLedger.Id,

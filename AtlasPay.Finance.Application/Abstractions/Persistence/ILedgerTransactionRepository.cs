@@ -7,4 +7,8 @@ public interface ILedgerTransactionRepository
     Task AddAsync(
         LedgerTransaction transaction,
         CancellationToken ct = default);
+
+    Task<LedgerTransaction?> GetByReferenceIdAsync(
+        Guid referenceId,
+        CancellationToken ct = default);
 }

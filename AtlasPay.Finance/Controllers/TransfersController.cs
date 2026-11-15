@@ -1,4 +1,6 @@
-﻿using AtlasPay.Finance.Application.Transfers.Commands.TransferMoney;
+﻿using AtlasPay.Finance.Api.Contracts.Transfers;
+using AtlasPay.Finance.Application.Transfers.Commands.ReverseTransfer;
+using AtlasPay.Finance.Application.Transfers.Commands.TransferMoney;
 using AtlasPay.Finance.Application.Transfers.Queries.GetAccountTransactions;
 using AtlasPay.Finance.Application.Transfers.Queries.GetTransfer;
 using AtlasPay.Finance.Contracts.Transfers;
@@ -57,6 +59,27 @@ public sealed class TransfersController : Controller
                 page == 0 ? 1 : page,
                 pageSize == 0 ? 20 : pageSize),
             ct);
+
+        return Ok(result);
+    }
+
+    [HttpPost("{transferId:guid}/reverse")]
+    public async Task<ActionResult<ReverseTransferResult>> Reverse(
+        [FromRoute] Guid transferId,
+        [FromBody] ReverseTransferRequest request,
+        [FromServices] ReverseTransferHandler handler,
+        [FromServices] IWebHostEnvironment environment,
+        CancellationToken ct)
+    {
+        if (!environment.IsDevelopment())
+            return NotFound();
+
+        var command = new ReverseTransferCommand(
+            request.RequestId,
+            transferId,
+            request.Reason);
+
+        var result = await handler.HandleAsync(command, ct);
 
         return Ok(result);
     }

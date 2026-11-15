@@ -1,14 +1,20 @@
+using AtlasPay.Finance.Application.Abstractions.Persistence;
 using AtlasPay.Finance.Application.Accounts.Commands.ActivateAccount;
 using AtlasPay.Finance.Application.Accounts.Commands.CreateAccount;
 using AtlasPay.Finance.Application.Accounts.Commands.FreezeAccount;
 using AtlasPay.Finance.Application.Accounts.Commands.UnfreezeAccount;
 using AtlasPay.Finance.Application.Accounts.Queries.GetAccount;
 using AtlasPay.Finance.Application.Accounts.Queries.GetAccountBalance;
+using AtlasPay.Finance.Application.Deposits.Commands.DepositMoney;
+using AtlasPay.Finance.Application.Transfers.Commands.ReverseTransfer;
 using AtlasPay.Finance.Application.Transfers.Commands.TransferMoney;
 using AtlasPay.Finance.Application.Transfers.Queries.GetAccountTransactions;
 using AtlasPay.Finance.Application.Transfers.Queries.GetTransfer;
+using AtlasPay.Finance.Application.Withdrawals.Commands;
 using AtlasPay.Finance.Exceptions;
 using AtlasPay.Finance.Infrastructure;
+using AtlasPay.Finance.Infrastructure.Persistence.Repositories;
+using AtlasPay.Finance.Infrastructure.Persistence.Seeders;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -33,13 +39,23 @@ builder.Services.AddScoped<GetAccountBalanceHandler>();
 builder.Services.AddScoped<TransferMoneyHandler>();
 builder.Services.AddScoped<GetTransferHandler>();
 builder.Services.AddScoped<GetAccountTransactionsHandler>();
+builder.Services.AddScoped<DepositMoneyHandler>();
+builder.Services.AddScoped<WithdrawalMoneyHandler>();
+builder.Services.AddScoped<ReverseTransferHandler>();
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+using (var scope = app.Services.CreateScope())
+{
+    var bootstrapper = scope.ServiceProvider
+        .GetRequiredService<InternalLedgerBootstrapper>();
+
+    await bootstrapper.InitializeAsync();
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();

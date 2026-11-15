@@ -1,4 +1,7 @@
-﻿using AtlasPay.Finance.Application.Transfers.Exceptions;
+﻿
+using AtlasPay.Finance.Application.Deposits.Exceptions;
+using AtlasPay.Finance.Application.Transfers.Exceptions;
+using AtlasPay.Finance.Application.Withdrawals.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,9 +17,18 @@ public sealed class GlobalExceptionHandler(
         Exception exception,
         CancellationToken cancellationToken)
     {
-        int status = exception switch
+        var statusCode = exception switch
         {
             TransferRequestConflictException =>
+                StatusCodes.Status409Conflict,
+
+            DepositRequestConflictException =>
+                StatusCodes.Status409Conflict,
+
+            WithdrawalRequestConflictException =>
+                StatusCodes.Status409Conflict,
+
+            TransferReversalConflictException =>
                 StatusCodes.Status409Conflict,
 
             ArgumentException =>
@@ -26,23 +38,23 @@ public sealed class GlobalExceptionHandler(
         };
 
         logger.Log(
-            status >= 500 ? LogLevel.Error : LogLevel.Warning,
+            statusCode >= 500 ? LogLevel.Error : LogLevel.Warning,
             exception,
             "Request failed with status {StatusCode}",
-            status);
+            statusCode);
 
-        httpContext.Response.StatusCode = status;
+        httpContext.Response.StatusCode = statusCode;
 
         var problem = new ProblemDetails
         {
-            Status = status,
-            Title = status switch
+            Status = statusCode,
+            Title = statusCode switch
             {
                 400 => "Invalid request",
-                409 => "Transfer conflict",
+                409 => "Request conflict",
                 _ => "Internal server error"
             },
-            Detail = status >= 500
+            Detail = statusCode >= 500
                 ? "An unexpected error occurred."
                 : exception.Message
         };

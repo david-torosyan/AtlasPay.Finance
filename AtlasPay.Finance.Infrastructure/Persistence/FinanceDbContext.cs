@@ -1,8 +1,11 @@
 ﻿using AtlasPay.Finance.Application.Abstractions.Persistence;
+using AtlasPay.Finance.Application.Deposits.Exceptions;
 using AtlasPay.Finance.Application.Transfers.Exceptions;
 using AtlasPay.Finance.Domain.Accounts.Entities;
+using AtlasPay.Finance.Domain.Deposits.Entities;
 using AtlasPay.Finance.Domain.Ledger.Entities;
 using AtlasPay.Finance.Domain.Transfers.Entities;
+using AtlasPay.Finance.Domain.Withdrawals.Entities;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -28,6 +31,12 @@ public sealed class FinanceDbContext : DbContext, IUnitOfWork
         => Set<AccountBalance>();
     public DbSet<Transfer> Transfers
         => Set<Transfer>();
+    public DbSet<Deposit> Deposits
+        => Set<Deposit>();
+    public DbSet<Withdrawal> Withdrawals
+        => Set<Withdrawal>();
+    public DbSet<TransferReversal> TransferReversals
+        => Set<TransferReversal>();
 
     public async Task ExecuteInTransactionAsync(
         Func<CancellationToken, Task> operation,
@@ -46,14 +55,34 @@ public sealed class FinanceDbContext : DbContext, IUnitOfWork
             await transaction.CommitAsync(ct);
         }
         catch (DbUpdateException ex)
-        when (
-            ex.InnerException is PostgresException pg &&
-            pg.SqlState == PostgresErrorCodes.UniqueViolation &&
-            pg.ConstraintName == "IX_transfers_RequestId")
+            when (ex.InnerException is PostgresException pg &&
+                  pg.SqlState == PostgresErrorCodes.UniqueViolation)
         {
             await transaction.RollbackAsync(CancellationToken.None);
 
-            throw new DuplicateTransferRequestException(ex);
+            var postgresException = (PostgresException)ex.InnerException!;
+
+            switch (postgresException.ConstraintName)
+            {
+                case "IX_transfers_RequestId":
+                    throw new DuplicateTransferRequestException();
+
+                case "IX_deposits_RequestId":
+                    throw new DuplicateDepositRequestException();
+
+                case "IX_withdrawals_RequestId":
+                    throw new DuplicateWithdrawalRequestException();
+
+                case "IX_transfer_reversals_RequestId":
+                    throw new DuplicateTransferReversalRequestException();
+
+                case "IX_transfer_reversals_OriginalTransferId":
+                    throw new TransferReversalConflictException(
+                        "This transfer has already been reversed.");
+
+                default:
+                    throw;
+            }
         }
         catch
         {
