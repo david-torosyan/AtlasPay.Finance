@@ -4,6 +4,7 @@ using AtlasPay.Finance.Application.Transfers.Exceptions;
 using AtlasPay.Finance.Domain.Accounts.Entities;
 using AtlasPay.Finance.Domain.Deposits.Entities;
 using AtlasPay.Finance.Domain.Ledger.Entities;
+using AtlasPay.Finance.Domain.Outbox.Entities;
 using AtlasPay.Finance.Domain.Transfers.Entities;
 using AtlasPay.Finance.Domain.Withdrawals.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -37,6 +38,8 @@ public sealed class FinanceDbContext : DbContext, IUnitOfWork
         => Set<Withdrawal>();
     public DbSet<TransferReversal> TransferReversals
         => Set<TransferReversal>();
+    public DbSet<OutboxMessage> OutboxMessages
+        =>Set<OutboxMessage>();
 
     public async Task ExecuteInTransactionAsync(
         Func<CancellationToken, Task> operation,

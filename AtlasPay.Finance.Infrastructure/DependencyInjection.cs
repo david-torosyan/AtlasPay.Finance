@@ -45,6 +45,7 @@ public static class DependencyInjection
         services.AddScoped<ITransferReversalRepository, TransferReversalRepository>();
         services.AddScoped<ILedgerReconciliationRepository, LedgerReconciliationRepository>();
         services.AddScoped<ILedgerIntegrityRepository, LedgerIntegrityRepository>();
+        services.AddScoped<IOutboxRepository, OutboxRepository>();
 
         services.AddScoped<InternalLedgerBootstrapper>();
 

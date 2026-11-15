@@ -1,10 +1,13 @@
 ﻿using AtlasPay.Finance.Application.Abstractions.Persistence;
 using AtlasPay.Finance.Application.Transfers.Exceptions;
+using AtlasPay.Finance.Application.Transfers.IntegrationEvents;
 using AtlasPay.Finance.Domain.Accounts.ValueObjects;
 using AtlasPay.Finance.Domain.Ledger.Entities;
 using AtlasPay.Finance.Domain.Ledger.ValueObjects;
+using AtlasPay.Finance.Domain.Outbox.Entities;
 using AtlasPay.Finance.Domain.Transfers.Entities;
 using AtlasPay.Finance.Domain.Transfers.ValueObjects;
+using System.Text.Json;
 
 namespace AtlasPay.Finance.Application.Transfers.Commands.TransferMoney;
 
@@ -13,7 +16,8 @@ public sealed class TransferMoneyHandler(
     IAccountLockRepository accountLockRepository,
     ITransferLedgerRepository transferLedgerRepository,
     ITransferRepository transferRepository,
-    ILedgerTransactionRepository ledgerTransactionRepository)
+    ILedgerTransactionRepository ledgerTransactionRepository,
+    IOutboxRepository outboxRepository)
 {
     public async Task<Guid> HandleAsync(
         TransferMoneyCommand command,
@@ -158,6 +162,28 @@ public sealed class TransferMoneyHandler(
 
                 await ledgerTransactionRepository.AddAsync(
                     ledgerTransaction, token);
+
+                // 12. Stage outbox messages.
+                var eventId = Guid.NewGuid();
+                var integrationEvent = new TransferCompletedV1(
+                        EventId: eventId,
+                        TransferId: transfer.Id,
+                        FromAccountId: transfer.FromAccountId,
+                        ToAccountId: transfer.ToAccountId,
+                        Amount: transfer.Amount.Amount,
+                        Currency: transfer.Amount.Currency.ToString(),
+                        OccurredAt: DateTimeOffset.UtcNow);
+
+                var payload = JsonSerializer.Serialize(
+                        integrationEvent,
+                        new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+                var outboxMessage = OutboxMessage.Create(
+                        eventId,
+                        nameof(TransferCompletedV1),
+                        payload);
+
+                await outboxRepository.AddAsync(outboxMessage, ct);
 
                 // ExecuteInTransactionAsync saves and commits.
                 resultId = transfer.Id;
