@@ -29,4 +29,15 @@ public class TransferRepository : ITransferRepository
                         x => x.Id == transferId,
                         ct);
     }
+
+    public async Task<Transfer?> GetByRequestIdAsync(
+        Guid requestId,
+        CancellationToken ct = default)
+    {
+        return await _dbContext.Transfers
+                    .AsNoTracking()
+                    .SingleOrDefaultAsync(
+                         x => x.RequestId == requestId,
+                         ct);
+    }
 }

@@ -8,11 +8,13 @@ public sealed class Transfer
     private Transfer() { } // For EF Core
 
     private Transfer(
+        Guid requestId,
         Guid fromAccountId,
         Guid toAccountId,
         Money amount)
     {
         Id = Guid.NewGuid();
+        RequestId = requestId;
         FromAccountId = fromAccountId;
         ToAccountId = toAccountId;
         Amount = amount;
@@ -21,6 +23,8 @@ public sealed class Transfer
     }
 
     public Guid Id { get; private set; }
+
+    public Guid RequestId { get; private set; } // For Idempotency
 
     public Guid FromAccountId { get; private set; }
 
@@ -35,10 +39,16 @@ public sealed class Transfer
     public DateTimeOffset? CompletedAt { get; private set; }
 
     public static Transfer Create(
+        Guid requestId,
         Guid fromAccountId,
         Guid toAccountId,
         Money amount)
     {
+        if (requestId == Guid.Empty)
+            throw new ArgumentException(
+                "Request ID cannot be empty.",
+                nameof(requestId));
+
         if (fromAccountId == Guid.Empty)
             throw new ArgumentException(
                 "Source account ID cannot be empty.",
@@ -61,6 +71,7 @@ public sealed class Transfer
                 nameof(amount));
 
         return new Transfer(
+            requestId,
             fromAccountId,
             toAccountId,
             amount);

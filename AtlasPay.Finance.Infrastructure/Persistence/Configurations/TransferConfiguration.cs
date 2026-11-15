@@ -43,6 +43,9 @@ public sealed class TransferConfiguration
         builder.Property(x => x.CompletedAt)
             .IsRequired(false);
 
+        builder.Property(x => x.RequestId)
+            .IsRequired();
+
         builder.ComplexProperty(x => x.Amount, money =>
         {
             money.Property(x => x.Amount)
@@ -70,5 +73,7 @@ public sealed class TransferConfiguration
         builder.HasIndex(x => x.ToAccountId);
 
         builder.HasIndex(x => x.CreatedAt);
+
+        builder.HasIndex(x => x.RequestId).IsUnique();
     }
 }

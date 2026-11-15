@@ -1,8 +1,10 @@
 ﻿using AtlasPay.Finance.Application.Abstractions.Persistence;
+using AtlasPay.Finance.Application.Transfers.Exceptions;
 using AtlasPay.Finance.Domain.Accounts.ValueObjects;
 using AtlasPay.Finance.Domain.Ledger.Entities;
 using AtlasPay.Finance.Domain.Ledger.ValueObjects;
 using AtlasPay.Finance.Domain.Transfers.Entities;
+using AtlasPay.Finance.Domain.Transfers.ValueObjects;
 
 namespace AtlasPay.Finance.Application.Transfers.Commands.TransferMoney;
 
@@ -17,18 +19,34 @@ public sealed class TransferMoneyHandler(
         TransferMoneyCommand command,
         CancellationToken ct = default)
     {
+        if (command.RequestId == Guid.Empty)
+            throw new ArgumentException(
+                "RequestId cannot be empty.");
+
         // 1. Validate amount and currency.
         var amount = new Money(
             command.Amount,
             command.Currency);
 
         var transfer = Transfer.Create(
+            command.RequestId,
             command.FromAccountId,
             command.ToAccountId,
             amount);
 
-        // 2. Execute everything in one DB transaction.
-        await unitOfWork.ExecuteInTransactionAsync(
+        // Fast path: the request may already be completed.
+        var existing = await transferRepository
+            .GetByRequestIdAsync(command.RequestId, ct);
+
+        if (existing is not null)
+            return ResolveExisting(existing, command);
+
+        try
+        {
+            Guid resultId = Guid.Empty;
+
+            // 2. Execute everything in one DB transaction.
+            await unitOfWork.ExecuteInTransactionAsync(
             async token =>
             {
                 // 3. Lock both accounts.
@@ -37,6 +55,21 @@ public sealed class TransferMoneyHandler(
                         command.FromAccountId,
                         command.ToAccountId,
                         token);
+
+                // Check again after waiting for account locks.
+                // Another transaction may have completed meanwhile.
+                var alreadyProcessed = await transferRepository
+                    .GetByRequestIdAsync(
+                        command.RequestId,
+                        token);
+                if (alreadyProcessed is not null)
+                {
+                    resultId = ResolveExisting(
+                        alreadyProcessed,
+                        command);
+
+                    return;
+                }
 
                 var sourceAccount = accounts.Single(
                     x => x.Id == command.FromAccountId);
@@ -72,7 +105,9 @@ public sealed class TransferMoneyHandler(
                         token);
 
                 if (source.LedgerAccount.Currency != amount.Currency ||
-                    destination.LedgerAccount.Currency != amount.Currency)
+                        destination.LedgerAccount.Currency != amount.Currency ||
+                        source.Balance.Balance.Currency != amount.Currency ||
+                        destination.Balance.Balance.Currency != amount.Currency)
                 {
                     throw new InvalidOperationException(
                         "Ledger account currency mismatch.");
@@ -111,9 +146,45 @@ public sealed class TransferMoneyHandler(
                     ledgerTransaction, token);
 
                 // ExecuteInTransactionAsync saves and commits.
+                resultId = transfer.Id;
             },
             ct);
 
-        return transfer.Id;
+            return transfer.Id;
+        }
+        catch (DuplicateTransferRequestException)
+        {
+            // A competing transaction committed the same RequestId.
+            // The transaction has already rolled back.
+            // Re-read the winning result without tracking it.
+            var winner = await transferRepository
+                .GetByRequestIdAsync(command.RequestId, ct);
+
+            if (winner is null)
+                throw;
+
+            return ResolveExisting(winner, command);
+        }
+    }
+
+    private static Guid ResolveExisting(
+       Transfer existing,
+       TransferMoneyCommand command)
+    {
+        if (existing.FromAccountId != command.FromAccountId ||
+            existing.ToAccountId != command.ToAccountId ||
+            existing.Amount.Amount != command.Amount ||
+            existing.Amount.Currency != command.Currency)
+        {
+            throw new TransferRequestConflictException();
+        }
+
+        if (existing.Status != TransferStatus.Completed)
+        {
+            throw new InvalidOperationException(
+                $"Existing transfer is in {existing.Status} status.");
+        }
+
+        return existing.Id;
     }
 }
