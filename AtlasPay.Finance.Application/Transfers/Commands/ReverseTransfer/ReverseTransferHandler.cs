@@ -1,11 +1,14 @@
 ﻿
 using AtlasPay.Finance.Application.Abstractions.Persistence;
+using AtlasPay.Finance.Application.IntegrationEvents;
 using AtlasPay.Finance.Application.Transfers.Exceptions;
-using AtlasPay.Finance.Domain.Accounts.ValueObjects;
+using AtlasPay.Finance.Application.Transfers.IntegrationEvents;
 using AtlasPay.Finance.Domain.Ledger.Entities;
 using AtlasPay.Finance.Domain.Ledger.ValueObjects;
+using AtlasPay.Finance.Domain.Outbox.Entities;
 using AtlasPay.Finance.Domain.Transfers.Entities;
 using AtlasPay.Finance.Domain.Transfers.ValueObjects;
+using System.Text.Json;
 
 namespace AtlasPay.Finance.Application.Transfers.Commands.ReverseTransfer;
 
@@ -15,7 +18,8 @@ public sealed class ReverseTransferHandler(
     ILedgerTransactionRepository ledgerTransactionRepository,
     IAccountLockRepository accountLockRepository,
     ITransferLedgerRepository transferLedgerRepository,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork,
+    IOutboxRepository outboxRepository)
 {
     public async Task<ReverseTransferResult> HandleAsync(
         ReverseTransferCommand command,
@@ -137,6 +141,31 @@ public sealed class ReverseTransferHandler(
 
                     await ledgerTransactionRepository.AddAsync(
                         reversalLedger, token);
+
+                    var eventId = Guid.NewGuid();
+
+                    var integrationEvent = new TransferReversedV1(
+                        EventId: eventId,
+                        ReversalId: reversal.Id,
+                        OriginalTransferId: transfer.Id,
+                        FromAccountId: transfer.FromAccountId,
+                        ToAccountId: transfer.ToAccountId,
+                        Amount: transfer.Amount.Amount,
+                        Currency: transfer.Amount.Currency.ToString(),
+                        OccurredAt: DateTimeOffset.UtcNow);
+
+                    var payload = JsonSerializer.Serialize(
+                        integrationEvent,
+                        new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+                    var outboxMessage = OutboxMessage.Create(
+                        eventId,
+                        FinanceEventTypes.TransferReversed,
+                        payload);
+
+                    await outboxRepository.AddAsync(
+                        outboxMessage,
+                        token);
                 },
                 ct);
         }

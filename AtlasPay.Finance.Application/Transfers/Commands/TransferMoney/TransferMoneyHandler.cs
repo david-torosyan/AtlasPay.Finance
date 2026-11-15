@@ -1,4 +1,5 @@
 ﻿using AtlasPay.Finance.Application.Abstractions.Persistence;
+using AtlasPay.Finance.Application.IntegrationEvents;
 using AtlasPay.Finance.Application.Transfers.Exceptions;
 using AtlasPay.Finance.Application.Transfers.IntegrationEvents;
 using AtlasPay.Finance.Domain.Accounts.ValueObjects;
@@ -180,10 +181,10 @@ public sealed class TransferMoneyHandler(
 
                 var outboxMessage = OutboxMessage.Create(
                         eventId,
-                        nameof(TransferCompletedV1),
+                        FinanceEventTypes.TransferCompleted,
                         payload);
 
-                await outboxRepository.AddAsync(outboxMessage, ct);
+                await outboxRepository.AddAsync(outboxMessage, token);
 
                 // ExecuteInTransactionAsync saves and commits.
                 resultId = transfer.Id;

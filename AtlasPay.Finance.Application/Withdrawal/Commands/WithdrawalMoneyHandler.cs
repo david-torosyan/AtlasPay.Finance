@@ -1,9 +1,13 @@
 ﻿using AtlasPay.Finance.Application.Abstractions.Persistence;
+using AtlasPay.Finance.Application.IntegrationEvents;
 using AtlasPay.Finance.Application.Withdrawals.Exceptions;
+using AtlasPay.Finance.Application.Withdrawals.IntegrationEvents;
 using AtlasPay.Finance.Domain.Accounts.ValueObjects;
 using AtlasPay.Finance.Domain.Ledger.Entities;
 using AtlasPay.Finance.Domain.Ledger.ValueObjects;
+using AtlasPay.Finance.Domain.Outbox.Entities;
 using AtlasPay.Finance.Domain.Withdrawals.Entities;
+using System.Text.Json;
 
 namespace AtlasPay.Finance.Application.Withdrawals.Commands;
 
@@ -14,7 +18,8 @@ public sealed class WithdrawalMoneyHandler(
     IAtomicBalanceRepository atomicBalanceRepository,
     IWithdrawalRepository withdrawalRepository,
     ILedgerTransactionRepository ledgerTransactionRepository,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork,
+    IOutboxRepository outboxRepository)
 {
     public async Task<WithdrawalMoneyResult> HandleAsync(
         WithdrawalMoneyCommand command,
@@ -160,6 +165,30 @@ public sealed class WithdrawalMoneyHandler(
                         throw new InvalidOperationException(
                             "Insufficient bank cash.");
                     }
+
+
+                    var eventId = Guid.NewGuid();
+
+                    var integrationEvent = new WithdrawalCompletedV1(
+                        EventId: eventId,
+                        WithdrawalId: withdrawal.Id,
+                        AccountId: withdrawal.AccountId,
+                        Amount: withdrawal.Amount.Amount,
+                        Currency: withdrawal.Amount.Currency.ToString(),
+                        OccurredAt: DateTimeOffset.UtcNow);
+
+                    var payload = JsonSerializer.Serialize(
+                        integrationEvent,
+                        new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+                    var outboxMessage = OutboxMessage.Create(
+                        eventId,
+                        FinanceEventTypes.WithdrawalCompleted,
+                        payload);
+
+                    await outboxRepository.AddAsync(
+                        outboxMessage,
+                        token);
                 },
                 ct);
         }

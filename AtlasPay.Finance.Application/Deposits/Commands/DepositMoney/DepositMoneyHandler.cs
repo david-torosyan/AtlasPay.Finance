@@ -1,10 +1,15 @@
 ﻿
 using AtlasPay.Finance.Application.Abstractions.Persistence;
 using AtlasPay.Finance.Application.Deposits.Exceptions;
+using AtlasPay.Finance.Application.Deposits.IntegrationEvents;
+using AtlasPay.Finance.Application.IntegrationEvents;
+using AtlasPay.Finance.Application.Transfers.IntegrationEvents;
 using AtlasPay.Finance.Domain.Accounts.ValueObjects;
 using AtlasPay.Finance.Domain.Deposits.Entities;
 using AtlasPay.Finance.Domain.Ledger.Entities;
 using AtlasPay.Finance.Domain.Ledger.ValueObjects;
+using AtlasPay.Finance.Domain.Outbox.Entities;
+using System.Text.Json;
 
 namespace AtlasPay.Finance.Application.Deposits.Commands.DepositMoney;
 
@@ -15,7 +20,8 @@ public sealed class DepositMoneyHandler(
     IAtomicBalanceRepository atomicBalanceRepository,
     IDepositRepository depositRepository,
     ILedgerTransactionRepository ledgerTransactionRepository,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork,
+    IOutboxRepository outboxRepository)
 {
     public async Task<DepositMoneyResult> HandleAsync(
         DepositMoneyCommand command,
@@ -150,6 +156,25 @@ public sealed class DepositMoneyHandler(
                         cashLedger.LedgerAccount.Id,
                         amount,
                         token);
+
+                    var eventId = Guid.NewGuid();
+                    var integrationEvent = new DepositCompletedV1(
+                        EventId: eventId,
+                        DepositId: deposit.Id,
+                        AccountId: deposit.AccountId,
+                        Amount: deposit.Amount.Amount,
+                        Currency: deposit.Amount.Currency.ToString());
+
+                    var payload = JsonSerializer.Serialize(
+                        integrationEvent,
+                        new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+                    var outboxMessage = OutboxMessage.Create(
+                        eventId,
+                        FinanceEventTypes.DepositCompleted,
+                        payload);
+
+                    await outboxRepository.AddAsync(outboxMessage, token);
                 },
                 ct);
         }
