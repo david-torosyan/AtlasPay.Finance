@@ -6,6 +6,8 @@ using AtlasPay.Finance.Application.Accounts.Commands.UnfreezeAccount;
 using AtlasPay.Finance.Application.Accounts.Queries.GetAccount;
 using AtlasPay.Finance.Application.Accounts.Queries.GetAccountBalance;
 using AtlasPay.Finance.Application.Deposits.Commands.DepositMoney;
+using AtlasPay.Finance.Application.Ledger.Queries.CheckLedgerIntegrity;
+using AtlasPay.Finance.Application.Ledger.Queries.ReconcileLedger;
 using AtlasPay.Finance.Application.Transfers.Commands.ReverseTransfer;
 using AtlasPay.Finance.Application.Transfers.Commands.TransferMoney;
 using AtlasPay.Finance.Application.Transfers.Queries.GetAccountTransactions;
@@ -42,6 +44,8 @@ builder.Services.AddScoped<GetAccountTransactionsHandler>();
 builder.Services.AddScoped<DepositMoneyHandler>();
 builder.Services.AddScoped<WithdrawalMoneyHandler>();
 builder.Services.AddScoped<ReverseTransferHandler>();
+builder.Services.AddScoped<ReconcileLedgerHandler>();
+builder.Services.AddScoped<CheckLedgerIntegrityHandler>();
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();

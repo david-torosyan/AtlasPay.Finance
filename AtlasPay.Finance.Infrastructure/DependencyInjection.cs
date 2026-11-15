@@ -1,4 +1,6 @@
 ﻿using AtlasPay.Finance.Application.Abstractions.Persistence;
+using AtlasPay.Finance.Application.Ledger.Queries.CheckLedgerIntegrity;
+using AtlasPay.Finance.Application.Ledger.Queries.ReconcileLedger;
 using AtlasPay.Finance.Infrastructure.Persistence;
 using AtlasPay.Finance.Infrastructure.Persistence.Repositories;
 using AtlasPay.Finance.Infrastructure.Persistence.Seeders;
@@ -41,6 +43,8 @@ public static class DependencyInjection
         services.AddScoped<IAtomicBalanceRepository, AtomicBalanceRepository>();
         services.AddScoped<IWithdrawalRepository, WithdrawalRepository>();
         services.AddScoped<ITransferReversalRepository, TransferReversalRepository>();
+        services.AddScoped<ILedgerReconciliationRepository, LedgerReconciliationRepository>();
+        services.AddScoped<ILedgerIntegrityRepository, LedgerIntegrityRepository>();
 
         services.AddScoped<InternalLedgerBootstrapper>();
 
