@@ -3,5 +3,6 @@
   <Project Path="AtlasPay.Finance.Domain/AtlasPay.Finance.Domain.csproj" />
   <Project Path="AtlasPay.Finance.Infrastructure/AtlasPay.Finance.Infrastructure.csproj" />
   <Project Path="AtlasPay.Finance.IntegrationTests/AtlasPay.Finance.IntegrationTests.csproj" Id="c4637c2b-02c1-4bea-8128-95506b9851ad" />
+  <Project Path="AtlasPay.Finance.Worker/AtlasPay.Finance.Worker.csproj" />
   <Project Path="AtlasPay.Finance/AtlasPay.Finance.Api.csproj" />
 </Solution>

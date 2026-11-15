@@ -44,7 +44,8 @@ public sealed class TransferMoneyTests
                 new AccountLockRepository(db),
                 new TransferLedgerRepository(db),
                 new TransferRepository(db),
-                new LedgerTransactionRepository(db));
+                new LedgerTransactionRepository(db),
+                new OutboxRepository(db));
 
             transferId = await handler.HandleAsync(
                 new TransferMoneyCommand(
