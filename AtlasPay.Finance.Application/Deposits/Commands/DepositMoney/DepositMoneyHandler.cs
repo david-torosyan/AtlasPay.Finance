@@ -1,9 +1,7 @@
-﻿
+﻿using AtlasPay.Contracts.Events.Finance;
+using AtlasPay.Contracts.Events.Finance.V2;
 using AtlasPay.Finance.Application.Abstractions.Persistence;
 using AtlasPay.Finance.Application.Deposits.Exceptions;
-using AtlasPay.Finance.Application.Deposits.IntegrationEvents;
-using AtlasPay.Finance.Application.IntegrationEvents;
-using AtlasPay.Finance.Application.Transfers.IntegrationEvents;
 using AtlasPay.Finance.Domain.Accounts.ValueObjects;
 using AtlasPay.Finance.Domain.Deposits.Entities;
 using AtlasPay.Finance.Domain.Ledger.Entities;
@@ -158,12 +156,14 @@ public sealed class DepositMoneyHandler(
                         token);
 
                     var eventId = Guid.NewGuid();
-                    var integrationEvent = new DepositCompletedV1(
-                        EventId: eventId,
-                        DepositId: deposit.Id,
-                        AccountId: deposit.AccountId,
-                        Amount: deposit.Amount.Amount,
-                        Currency: deposit.Amount.Currency.ToString());
+                    var integrationEvent = new DepositCompletedV2(
+                            EventId: Guid.NewGuid(),
+                            DepositId: deposit.Id,
+                            AccountId: account.Id,
+                            CustomerId: account.CustomerId,
+                            Amount: deposit.Amount.Amount,
+                            Currency: account.Currency.ToString(),
+                            OccurredAt: DateTime.UtcNow);
 
                     var payload = JsonSerializer.Serialize(
                         integrationEvent,
@@ -171,7 +171,7 @@ public sealed class DepositMoneyHandler(
 
                     var outboxMessage = OutboxMessage.Create(
                         eventId,
-                        FinanceEventTypes.DepositCompleted,
+                        FinanceEventTypes.DepositCompletedV2,
                         payload);
 
                     await outboxRepository.AddAsync(outboxMessage, token);

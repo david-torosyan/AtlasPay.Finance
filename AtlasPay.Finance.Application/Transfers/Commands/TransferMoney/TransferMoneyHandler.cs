@@ -1,7 +1,7 @@
-﻿using AtlasPay.Finance.Application.Abstractions.Persistence;
-using AtlasPay.Finance.Application.IntegrationEvents;
+﻿using AtlasPay.Contracts.Events.Finance;
+using AtlasPay.Contracts.Events.Finance.V2;
+using AtlasPay.Finance.Application.Abstractions.Persistence;
 using AtlasPay.Finance.Application.Transfers.Exceptions;
-using AtlasPay.Finance.Application.Transfers.IntegrationEvents;
 using AtlasPay.Finance.Domain.Accounts.ValueObjects;
 using AtlasPay.Finance.Domain.Ledger.Entities;
 using AtlasPay.Finance.Domain.Ledger.ValueObjects;
@@ -166,14 +166,16 @@ public sealed class TransferMoneyHandler(
 
                 // 12. Stage outbox messages.
                 var eventId = Guid.NewGuid();
-                var integrationEvent = new TransferCompletedV1(
+                var integrationEvent = new TransferCompletedV2(
                         EventId: eventId,
                         TransferId: transfer.Id,
                         FromAccountId: transfer.FromAccountId,
+                        FromCustomerId: sourceAccount.CustomerId,
                         ToAccountId: transfer.ToAccountId,
+                        ToCustomerId: destinationAccount.CustomerId,
                         Amount: transfer.Amount.Amount,
                         Currency: transfer.Amount.Currency.ToString(),
-                        OccurredAt: DateTimeOffset.UtcNow);
+                        OccurredAt: DateTime.UtcNow);
 
                 var payload = JsonSerializer.Serialize(
                         integrationEvent,
@@ -181,7 +183,7 @@ public sealed class TransferMoneyHandler(
 
                 var outboxMessage = OutboxMessage.Create(
                         eventId,
-                        FinanceEventTypes.TransferCompleted,
+                        FinanceEventTypes.TransferCompletedV2,
                         payload);
 
                 await outboxRepository.AddAsync(outboxMessage, token);

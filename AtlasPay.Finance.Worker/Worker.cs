@@ -70,7 +70,7 @@ public sealed class Worker(
                     _workerId,
                     ct);
 
-                if (!marked)
+                if (!marked)    
                 {
                     logger.LogWarning(
                         "Event {EventId} was published, but its " +

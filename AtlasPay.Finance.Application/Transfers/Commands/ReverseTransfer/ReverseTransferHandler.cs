@@ -1,8 +1,8 @@
 ﻿
+using AtlasPay.Contracts.Events.Finance;
+using AtlasPay.Contracts.Events.Finance.V2;
 using AtlasPay.Finance.Application.Abstractions.Persistence;
-using AtlasPay.Finance.Application.IntegrationEvents;
 using AtlasPay.Finance.Application.Transfers.Exceptions;
-using AtlasPay.Finance.Application.Transfers.IntegrationEvents;
 using AtlasPay.Finance.Domain.Ledger.Entities;
 using AtlasPay.Finance.Domain.Ledger.ValueObjects;
 using AtlasPay.Finance.Domain.Outbox.Entities;
@@ -62,10 +62,10 @@ public sealed class ReverseTransferHandler(
                             "Only completed transfers can be reversed.");
 
                     // Lock accounts in a consistent order.
-                    await accountLockRepository.LockAccountsAsync(
-                        transfer.FromAccountId,
-                        transfer.ToAccountId,
-                        token);
+                    var accounts = await accountLockRepository.LockAccountsAsync(
+                            transfer.FromAccountId,
+                            transfer.ToAccountId,
+                            token);
 
                     var duplicate = await reversalRepository
                         .GetByRequestIdAsync(command.RequestId, token);
@@ -144,15 +144,17 @@ public sealed class ReverseTransferHandler(
 
                     var eventId = Guid.NewGuid();
 
-                    var integrationEvent = new TransferReversedV1(
+                    var integrationEvent = new TransferReversedV2(
                         EventId: eventId,
                         ReversalId: reversal.Id,
                         OriginalTransferId: transfer.Id,
                         FromAccountId: transfer.FromAccountId,
+                        FromCustomerId: accounts.Single(x => x.Id == transfer.FromAccountId).CustomerId,
                         ToAccountId: transfer.ToAccountId,
+                        ToCustomerId: accounts.Single(x => x.Id == transfer.ToAccountId).CustomerId,
                         Amount: transfer.Amount.Amount,
                         Currency: transfer.Amount.Currency.ToString(),
-                        OccurredAt: DateTimeOffset.UtcNow);
+                        OccurredAt: DateTime.UtcNow);
 
                     var payload = JsonSerializer.Serialize(
                         integrationEvent,
@@ -160,7 +162,7 @@ public sealed class ReverseTransferHandler(
 
                     var outboxMessage = OutboxMessage.Create(
                         eventId,
-                        FinanceEventTypes.TransferReversed,
+                        FinanceEventTypes.TransferReversedV2,
                         payload);
 
                     await outboxRepository.AddAsync(

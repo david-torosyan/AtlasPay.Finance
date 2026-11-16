@@ -1,7 +1,7 @@
-﻿using AtlasPay.Finance.Application.Abstractions.Persistence;
-using AtlasPay.Finance.Application.IntegrationEvents;
+﻿using AtlasPay.Contracts.Events.Finance;
+using AtlasPay.Contracts.Events.Finance.V2;
+using AtlasPay.Finance.Application.Abstractions.Persistence;
 using AtlasPay.Finance.Application.Withdrawals.Exceptions;
-using AtlasPay.Finance.Application.Withdrawals.IntegrationEvents;
 using AtlasPay.Finance.Domain.Accounts.ValueObjects;
 using AtlasPay.Finance.Domain.Ledger.Entities;
 using AtlasPay.Finance.Domain.Ledger.ValueObjects;
@@ -169,13 +169,14 @@ public sealed class WithdrawalMoneyHandler(
 
                     var eventId = Guid.NewGuid();
 
-                    var integrationEvent = new WithdrawalCompletedV1(
+                    var integrationEvent = new WithdrawalCompletedV2(
                         EventId: eventId,
                         WithdrawalId: withdrawal.Id,
                         AccountId: withdrawal.AccountId,
+                        CustomerId: account.CustomerId,
                         Amount: withdrawal.Amount.Amount,
                         Currency: withdrawal.Amount.Currency.ToString(),
-                        OccurredAt: DateTimeOffset.UtcNow);
+                        OccurredAt: DateTime.UtcNow);
 
                     var payload = JsonSerializer.Serialize(
                         integrationEvent,
@@ -183,7 +184,7 @@ public sealed class WithdrawalMoneyHandler(
 
                     var outboxMessage = OutboxMessage.Create(
                         eventId,
-                        FinanceEventTypes.WithdrawalCompleted,
+                        FinanceEventTypes.WithdrawalCompletedV2,
                         payload);
 
                     await outboxRepository.AddAsync(

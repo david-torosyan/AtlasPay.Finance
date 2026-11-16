@@ -8,9 +8,6 @@
 
   <ItemGroup>
     <Folder Include="Accounts\Events\" />
-    <Folder Include="Common\Entities\" />
-    <Folder Include="Common\Exceptions\" />
-    <Folder Include="Common\ValueObjects\" />
   </ItemGroup>
 
 </Project>
