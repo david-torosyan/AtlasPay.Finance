@@ -47,7 +47,7 @@ public sealed class Worker(
 
         var claimedIds = await repository.ClaimBatchAsync(
            _workerId,
-           batchSize: 1,
+           batchSize: 3,
            leaseDuration: TimeSpan.FromSeconds(30),
            ct: ct);
 
