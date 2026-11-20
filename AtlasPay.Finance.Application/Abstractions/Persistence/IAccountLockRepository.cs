@@ -11,5 +11,6 @@ public interface IAccountLockRepository
 
     Task<Account> LockAccountAsync(
         Guid accountId,
+        Guid customerId,
         CancellationToken ct = default);
 }

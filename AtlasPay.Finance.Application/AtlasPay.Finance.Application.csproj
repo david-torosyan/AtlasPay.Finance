@@ -12,6 +12,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="AtlasPay.Contracts" Version="1.1.0" />
+		<PackageReference Include="AtlasPay.Security" Version="1.0.0" />
 	</ItemGroup>
 
 </Project>

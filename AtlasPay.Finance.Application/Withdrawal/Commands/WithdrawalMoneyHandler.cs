@@ -1,5 +1,6 @@
 ﻿using AtlasPay.Contracts.Events.Finance;
 using AtlasPay.Contracts.Events.Finance.V2;
+using AtlasPay.Finance.Application.Abstractions.Identity;
 using AtlasPay.Finance.Application.Abstractions.Persistence;
 using AtlasPay.Finance.Application.Withdrawals.Exceptions;
 using AtlasPay.Finance.Domain.Accounts.ValueObjects;
@@ -19,6 +20,7 @@ public sealed class WithdrawalMoneyHandler(
     IWithdrawalRepository withdrawalRepository,
     ILedgerTransactionRepository ledgerTransactionRepository,
     IUnitOfWork unitOfWork,
+    ICurrentCustomer currentCustomer,
     IOutboxRepository outboxRepository)
 {
     public async Task<WithdrawalMoneyResult> HandleAsync(
@@ -60,6 +62,7 @@ public sealed class WithdrawalMoneyHandler(
                     var account = await accountLockRepository
                         .LockAccountAsync(
                             command.AccountId,
+                            currentCustomer.CustomerId,
                             token);
 
                     var duplicate = await withdrawalRepository

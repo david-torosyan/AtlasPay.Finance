@@ -49,12 +49,4 @@ public sealed class OutboxMessage
             Attempts = 0
         };
     }
-
-    public void MarkPublished()
-    {
-        PublishedAt = DateTimeOffset.UtcNow;
-        LockedUntil = null;
-        LockedBy = null;
-        LastError = null;
-    }
 }

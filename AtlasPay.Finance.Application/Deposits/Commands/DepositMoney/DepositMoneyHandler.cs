@@ -1,5 +1,6 @@
 ﻿using AtlasPay.Contracts.Events.Finance;
 using AtlasPay.Contracts.Events.Finance.V2;
+using AtlasPay.Finance.Application.Abstractions.Identity;
 using AtlasPay.Finance.Application.Abstractions.Persistence;
 using AtlasPay.Finance.Application.Deposits.Exceptions;
 using AtlasPay.Finance.Domain.Accounts.ValueObjects;

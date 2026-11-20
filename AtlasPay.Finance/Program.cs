@@ -1,4 +1,5 @@
-using AtlasPay.Finance.Application.Abstractions.Persistence;
+using AtlasPay.Finance.Api.Security;
+using AtlasPay.Finance.Application.Abstractions.Identity;
 using AtlasPay.Finance.Application.Accounts.Commands.ActivateAccount;
 using AtlasPay.Finance.Application.Accounts.Commands.CreateAccount;
 using AtlasPay.Finance.Application.Accounts.Commands.FreezeAccount;
@@ -15,8 +16,9 @@ using AtlasPay.Finance.Application.Transfers.Queries.GetTransfer;
 using AtlasPay.Finance.Application.Withdrawals.Commands;
 using AtlasPay.Finance.Exceptions;
 using AtlasPay.Finance.Infrastructure;
-using AtlasPay.Finance.Infrastructure.Persistence.Repositories;
 using AtlasPay.Finance.Infrastructure.Persistence.Seeders;
+using AtlasPay.Security.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -46,9 +48,19 @@ builder.Services.AddScoped<WithdrawalMoneyHandler>();
 builder.Services.AddScoped<ReverseTransferHandler>();
 builder.Services.AddScoped<ReconcileLedgerHandler>();
 builder.Services.AddScoped<CheckLedgerIntegrityHandler>();
+builder.Services.AddScoped<ICurrentCustomer, CurrentCustomer>();
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddAtlasPayJwtAuthentication(builder.Configuration);
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("FinanceCustomer", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.RequireClaim("customer_id");
+    });
 
 var app = builder.Build();
 
@@ -67,6 +79,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

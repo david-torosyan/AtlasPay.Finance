@@ -9,6 +9,7 @@ public sealed class AccountLockRepository(
 {
     public async Task<Account> LockAccountAsync(
         Guid accountId,
+        Guid customerId,
         CancellationToken ct = default)
     {
         if (accountId == Guid.Empty)
@@ -18,7 +19,11 @@ public sealed class AccountLockRepository(
 
         var accounts = await dbContext.Accounts
                 .FromSqlInterpolated(
-                    $"""SELECT * FROM accounts WHERE "Id" = {accountId} FOR UPDATE""")
+                    $"""
+                    SELECT * FROM accounts
+                    WHERE "Id" = {accountId}
+                    AND "CustomerId" = {customerId} FOR UPDATE
+                    """)
                 .AsTracking()
                 .ToListAsync(ct);
 

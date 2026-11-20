@@ -1,10 +1,12 @@
 ﻿
 using AtlasPay.Finance.Api.Contracts.Withdrawals;
 using AtlasPay.Finance.Application.Withdrawals.Commands;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AtlasPay.Finance.Api.Controllers;
 
+[Authorize(Policy = "FinanceCustomer")]
 [ApiController]
 [Route("api/withdrawals")]
 public sealed class WithdrawalsController : ControllerBase

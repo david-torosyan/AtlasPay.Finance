@@ -1,14 +1,17 @@
-﻿using AtlasPay.Finance.Application.Accounts.Commands.ActivateAccount;
+﻿using AtlasPay.Finance.Application.Abstractions.Identity;
+using AtlasPay.Finance.Application.Accounts.Commands.ActivateAccount;
 using AtlasPay.Finance.Application.Accounts.Commands.CreateAccount;
 using AtlasPay.Finance.Application.Accounts.Commands.FreezeAccount;
 using AtlasPay.Finance.Application.Accounts.Commands.UnfreezeAccount;
 using AtlasPay.Finance.Application.Accounts.Queries.GetAccount;
 using AtlasPay.Finance.Application.Accounts.Queries.GetAccountBalance;
 using AtlasPay.Finance.Contracts.Accounts;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AtlasPay.Finance.Api.Controllers;
 
+[Authorize(Policy = "FinanceCustomer")]
 [ApiController]
 [Route("api/accounts")]
 public class AccountsController : Controller
@@ -28,10 +31,11 @@ public class AccountsController : Controller
     [HttpPost]
     public async Task<ActionResult<CreateAccountResponse>> Create(
         [FromBody] CreateAccountRequest request,
+        [FromServices] ICurrentCustomer currentCustomer,
         CancellationToken cancellationToken)
     {
         var command = new CreateAccountCommand(
-            request.CustomerId,
+            currentCustomer.CustomerId,
             request.Currency);
 
         var accountId = await _createHandler.HandleAsync(
