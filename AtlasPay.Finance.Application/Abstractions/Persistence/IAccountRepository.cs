@@ -10,5 +10,6 @@ public interface IAccountRepository
 
     Task<Account?> GetByIdAsync(
         Guid accountId,
+        Guid customerId,
         CancellationToken cancellationToken = default);
 }

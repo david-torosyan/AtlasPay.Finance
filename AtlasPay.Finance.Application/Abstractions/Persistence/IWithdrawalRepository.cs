@@ -10,5 +10,6 @@ public interface IWithdrawalRepository
 
     Task<Withdrawal?> GetByRequestIdAsync(
         Guid requestId,
+        Guid customerId,
         CancellationToken ct = default);
 }

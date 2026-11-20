@@ -1,5 +1,6 @@
 ﻿
 using AtlasPay.Finance.Application.Deposits.Exceptions;
+using AtlasPay.Finance.Application.Exceptions;
 using AtlasPay.Finance.Application.Transfers.Exceptions;
 using AtlasPay.Finance.Application.Withdrawals.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
@@ -31,6 +32,24 @@ public sealed class GlobalExceptionHandler(
             TransferReversalConflictException =>
                 StatusCodes.Status409Conflict,
 
+            FinancialOperationConflictException =>
+                StatusCodes.Status409Conflict,
+
+            DuplicateTransferRequestException =>
+                StatusCodes.Status409Conflict,
+
+            DuplicateWithdrawalRequestException =>
+                StatusCodes.Status409Conflict,
+
+            DuplicateDepositRequestException =>
+                StatusCodes.Status409Conflict,
+
+            KeyNotFoundException =>
+                StatusCodes.Status404NotFound,
+
+            UnauthorizedAccessException =>
+                StatusCodes.Status401Unauthorized,
+
             ArgumentException =>
                 StatusCodes.Status400BadRequest,
 
@@ -51,6 +70,8 @@ public sealed class GlobalExceptionHandler(
             Title = statusCode switch
             {
                 400 => "Invalid request",
+                401 => "Unauthorized",
+                404 => "Resource not found",
                 409 => "Request conflict",
                 _ => "Internal server error"
             },

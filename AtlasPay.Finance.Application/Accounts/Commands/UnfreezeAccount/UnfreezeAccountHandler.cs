@@ -1,9 +1,11 @@
-﻿using AtlasPay.Finance.Application.Abstractions.Persistence;
+﻿using AtlasPay.Finance.Application.Abstractions.Identity;
+using AtlasPay.Finance.Application.Abstractions.Persistence;
 
 namespace AtlasPay.Finance.Application.Accounts.Commands.UnfreezeAccount;
 
 public sealed class UnfreezeAccountHandler(
     IAccountRepository accounts,
+    ICurrentCustomer currentCustomer,
     IUnitOfWork unitOfWork)
 {
     public async Task<bool> HandleAsync(
@@ -11,7 +13,7 @@ public sealed class UnfreezeAccountHandler(
         CancellationToken ct = default)
     {
         var account = await accounts.GetByIdAsync(
-            command.AccountId, ct);
+            command.AccountId, currentCustomer.CustomerId, ct);
 
         if (account is null)
             return false;

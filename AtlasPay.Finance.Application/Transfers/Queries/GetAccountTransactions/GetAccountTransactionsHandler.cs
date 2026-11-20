@@ -1,9 +1,11 @@
-﻿using AtlasPay.Finance.Application.Abstractions.Persistence;
+﻿using AtlasPay.Finance.Application.Abstractions.Identity;
+using AtlasPay.Finance.Application.Abstractions.Persistence;
 
 namespace AtlasPay.Finance.Application.Transfers.Queries.GetAccountTransactions;
 
 public sealed class GetAccountTransactionsHandler(
-    ITransferReadRepository repository)
+    ITransferReadRepository repository,
+    ICurrentCustomer currentCustomer)
 {
     public Task<GetAccountTransactionsResult> HandleAsync(
         GetAccountTransactionsQuery query,
@@ -23,6 +25,7 @@ public sealed class GetAccountTransactionsHandler(
 
         return repository.GetByAccountIdAsync(
             query.AccountId,
+            currentCustomer.CustomerId,
             query.Page,
             query.PageSize,
             ct);

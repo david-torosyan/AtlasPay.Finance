@@ -3,6 +3,7 @@ using AtlasPay.Contracts.Events.Finance.V2;
 using AtlasPay.Finance.Application.Abstractions.Identity;
 using AtlasPay.Finance.Application.Abstractions.Persistence;
 using AtlasPay.Finance.Application.Deposits.Exceptions;
+using AtlasPay.Finance.Application.Exceptions;
 using AtlasPay.Finance.Domain.Accounts.ValueObjects;
 using AtlasPay.Finance.Domain.Deposits.Entities;
 using AtlasPay.Finance.Domain.Ledger.Entities;
@@ -73,11 +74,11 @@ public sealed class DepositMoneyHandler(
                         throw new DuplicateDepositRequestException();
 
                     if (account.Status != AccountStatus.Active)
-                        throw new InvalidOperationException(
+                        throw new FinancialOperationConflictException(
                             "Customer account must be active.");
 
                     if (account.Currency != amount.Currency)
-                        throw new InvalidOperationException(
+                        throw new FinancialOperationConflictException(
                             "Deposit currency does not match account currency.");
 
                     var customerLedger = await transferLedgerRepository
@@ -158,7 +159,7 @@ public sealed class DepositMoneyHandler(
 
                     var eventId = Guid.NewGuid();
                     var integrationEvent = new DepositCompletedV2(
-                            EventId: Guid.NewGuid(),
+                            EventId: eventId,
                             DepositId: deposit.Id,
                             AccountId: account.Id,
                             CustomerId: account.CustomerId,

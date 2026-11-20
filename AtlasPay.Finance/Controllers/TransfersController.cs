@@ -4,6 +4,7 @@ using AtlasPay.Finance.Application.Transfers.Commands.TransferMoney;
 using AtlasPay.Finance.Application.Transfers.Queries.GetAccountTransactions;
 using AtlasPay.Finance.Application.Transfers.Queries.GetTransfer;
 using AtlasPay.Finance.Contracts.Transfers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AtlasPay.Finance.Api.Controllers;
@@ -13,6 +14,7 @@ namespace AtlasPay.Finance.Api.Controllers;
 public sealed class TransfersController : Controller
 {
     [HttpPost]
+    [Authorize(Policy = "FinanceCustomer")]
     public async Task<ActionResult<TransferMoneyResponse>> Transfer(
         [FromBody] TransferMoneyRequest request,
         [FromServices] TransferMoneyHandler handler,
@@ -31,6 +33,7 @@ public sealed class TransfersController : Controller
     }
 
     [HttpGet("{transferId:guid}")]
+    [Authorize(Policy = "FinanceCustomer")]
     public async Task<IActionResult> GetById(
     Guid transferId,
     [FromServices] GetTransferHandler handler,
@@ -46,6 +49,7 @@ public sealed class TransfersController : Controller
     }
 
     [HttpGet("{accountId:guid}/transactions")]
+    [Authorize(Policy = "FinanceCustomer")]
     public async Task<IActionResult> GetTransactions(
         Guid accountId,
         [FromQuery] int page,

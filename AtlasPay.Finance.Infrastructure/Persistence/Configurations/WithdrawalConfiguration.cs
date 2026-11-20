@@ -26,6 +26,9 @@ public sealed class WithdrawalConfiguration
         builder.Property(x => x.RequestId)
             .IsRequired();
 
+        builder.HasIndex(x => x.RequestId)
+            .IsUnique();
+
         builder.Property(x => x.AccountId)
             .IsRequired();
 

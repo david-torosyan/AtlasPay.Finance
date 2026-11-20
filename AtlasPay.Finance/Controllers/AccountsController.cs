@@ -5,6 +5,7 @@ using AtlasPay.Finance.Application.Accounts.Commands.FreezeAccount;
 using AtlasPay.Finance.Application.Accounts.Commands.UnfreezeAccount;
 using AtlasPay.Finance.Application.Accounts.Queries.GetAccount;
 using AtlasPay.Finance.Application.Accounts.Queries.GetAccountBalance;
+using AtlasPay.Finance.Application.Transfers.Queries.GetAccountTransactions;
 using AtlasPay.Finance.Contracts.Accounts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -160,5 +161,23 @@ public class AccountsController : Controller
             Currency = result.Currency.ToString(),
             result.LedgerBalance
         });
+    }
+
+    [HttpGet("{accountId:guid}/transactions")]
+    public async Task<IActionResult> GetTransactions(
+        Guid accountId,
+        [FromQuery] int page,
+        [FromQuery] int pageSize,
+        [FromServices] GetAccountTransactionsHandler handler,
+        CancellationToken ct)
+    {
+        var result = await handler.HandleAsync(
+            new GetAccountTransactionsQuery(
+                accountId,
+                page == 0 ? 1 : page,
+                pageSize == 0 ? 20 : pageSize),
+            ct);
+
+        return Ok(result);
     }
 }

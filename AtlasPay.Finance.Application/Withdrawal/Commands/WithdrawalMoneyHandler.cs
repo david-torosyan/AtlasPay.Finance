@@ -3,6 +3,7 @@ using AtlasPay.Contracts.Events.Finance.V2;
 using AtlasPay.Finance.Application.Abstractions.Identity;
 using AtlasPay.Finance.Application.Abstractions.Persistence;
 using AtlasPay.Finance.Application.Withdrawals.Exceptions;
+using AtlasPay.Finance.Application.Exceptions;
 using AtlasPay.Finance.Domain.Accounts.ValueObjects;
 using AtlasPay.Finance.Domain.Ledger.Entities;
 using AtlasPay.Finance.Domain.Ledger.ValueObjects;
@@ -39,12 +40,17 @@ public sealed class WithdrawalMoneyHandler(
             command.Amount,
             command.Currency);
 
+        var customerId = currentCustomer.CustomerId;
+
         if (amount.Amount <= 0)
             throw new ArgumentException(
                 "Withdrawal amount must be positive.");
 
         var existing = await withdrawalRepository
-                .GetByRequestIdAsync(command.RequestId, ct);
+                .GetByRequestIdAsync(
+                    command.RequestId,
+                    customerId,
+                    ct);
 
         if (existing is not null)
             return MatchExisting(existing, command);
@@ -62,23 +68,24 @@ public sealed class WithdrawalMoneyHandler(
                     var account = await accountLockRepository
                         .LockAccountAsync(
                             command.AccountId,
-                            currentCustomer.CustomerId,
+                            customerId,
                             token);
 
                     var duplicate = await withdrawalRepository
                        .GetByRequestIdAsync(
                            command.RequestId,
+                           customerId,
                            token);
 
                     if (duplicate is not null)
                         throw new DuplicateWithdrawalRequestException();
 
                     if (account.Status != AccountStatus.Active)
-                        throw new InvalidOperationException(
+                        throw new FinancialOperationConflictException(
                             "Customer account must be active.");
 
                     if (account.Currency != amount.Currency)
-                        throw new InvalidOperationException(
+                        throw new FinancialOperationConflictException(
                             "Withdrawal currency does not match account currency.");
 
                     var customerLedger = await transferLedgerRepository
@@ -139,7 +146,7 @@ public sealed class WithdrawalMoneyHandler(
 
                     if (customerLedger.Balance.Balance.Amount < amount.Amount)
                     {
-                        throw new InvalidOperationException(
+                        throw new FinancialOperationConflictException(
                             "Insufficient customer funds.");
                     }
 
@@ -165,7 +172,7 @@ public sealed class WithdrawalMoneyHandler(
                                             token);
                     if (!cashDecreased)
                     {
-                        throw new InvalidOperationException(
+                        throw new FinancialOperationConflictException(
                             "Insufficient bank cash.");
                     }
 
@@ -198,7 +205,10 @@ public sealed class WithdrawalMoneyHandler(
         }
         catch (DuplicateWithdrawalRequestException)
         {
-            return await ResolveDuplicateAsync(command, ct);
+            return await ResolveDuplicateAsync(
+                command,
+                customerId,
+                ct);
         }
 
         return new WithdrawalMoneyResult(withdrawal.Id);
@@ -206,13 +216,14 @@ public sealed class WithdrawalMoneyHandler(
 
     private async Task<WithdrawalMoneyResult> ResolveDuplicateAsync(
         WithdrawalMoneyCommand command,
+        Guid customerId,
         CancellationToken ct)
     {
         var existing = await withdrawalRepository.GetByRequestIdAsync(
             command.RequestId,
+            customerId,
             ct)
-            ?? throw new InvalidOperationException(
-                "Withdrawal idempotency result could not be resolved.");
+            ?? throw new WithdrawalRequestConflictException();
 
         return MatchExisting(existing, command);
     }

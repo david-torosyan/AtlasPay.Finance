@@ -3,6 +3,7 @@ using AtlasPay.Contracts.Events.Finance;
 using AtlasPay.Contracts.Events.Finance.V2;
 using AtlasPay.Finance.Application.Abstractions.Persistence;
 using AtlasPay.Finance.Application.Transfers.Exceptions;
+using AtlasPay.Finance.Application.Exceptions;
 using AtlasPay.Finance.Domain.Ledger.Entities;
 using AtlasPay.Finance.Domain.Ledger.ValueObjects;
 using AtlasPay.Finance.Domain.Outbox.Entities;
@@ -54,11 +55,11 @@ public sealed class ReverseTransferHandler(
                 {
                     var transfer = await transferRepository.GetByIdAsync(
                         command.TransferId, token)
-                        ?? throw new InvalidOperationException(
+                        ?? throw new KeyNotFoundException(
                             "Original transfer not found.");
 
                     if (transfer.Status != TransferStatus.Completed)
-                        throw new InvalidOperationException(
+                        throw new FinancialOperationConflictException(
                             "Only completed transfers can be reversed.");
 
                     // Lock accounts in a consistent order.
@@ -117,7 +118,7 @@ public sealed class ReverseTransferHandler(
                     if (recipient.Balance.Balance.Amount
                         < transfer.Amount.Amount)
                     {
-                        throw new InvalidOperationException(
+                        throw new FinancialOperationConflictException(
                             "Recipient has insufficient funds for reversal.");
                     }
 

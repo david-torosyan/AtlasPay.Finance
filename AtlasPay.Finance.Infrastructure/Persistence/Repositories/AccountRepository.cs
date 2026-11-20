@@ -23,12 +23,14 @@ public sealed class AccountRepository : IAccountRepository
     }
 
     public Task<Account?> GetByIdAsync(
-    Guid accountId,
-    CancellationToken cancellationToken = default)
+        Guid accountId,
+        Guid customerId,
+        CancellationToken cancellationToken = default)
     {
         return _dbContext.Accounts
             .SingleOrDefaultAsync(
-                x => x.Id == accountId,
+                x => x.Id == accountId &&
+                     x.CustomerId == customerId,
                 cancellationToken);
     }
 }

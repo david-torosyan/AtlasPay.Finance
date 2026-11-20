@@ -1,5 +1,6 @@
 ﻿
 using AtlasPay.Finance.Application.Transfers.Commands.TransferMoney;
+using AtlasPay.Finance.Application.Abstractions.Identity;
 using AtlasPay.Finance.Domain.Accounts.ValueObjects;
 using AtlasPay.Finance.Domain.Ledger.ValueObjects;
 using AtlasPay.Finance.Domain.Transfers.ValueObjects;
@@ -39,12 +40,18 @@ public sealed class TransferMoneyTests
 
         await using (var db = CreateDb())
         {
+            var customerId = await db.Accounts
+                .Where(x => x.Id == annaId)
+                .Select(x => x.CustomerId)
+                .SingleAsync();
+
             var handler = new TransferMoneyHandler(
                 db,
                 new AccountLockRepository(db),
                 new TransferLedgerRepository(db),
                 new TransferRepository(db),
                 new LedgerTransactionRepository(db),
+                new TestCurrentCustomer(customerId),
                 new OutboxRepository(db));
 
             transferId = await handler.HandleAsync(
@@ -112,4 +119,7 @@ public sealed class TransferMoneyTests
                 bobBalance.Balance.Amount);
         }
     }
+
+    private sealed record TestCurrentCustomer(Guid CustomerId)
+        : ICurrentCustomer;
 }

@@ -17,8 +17,22 @@ public class TransferReadRepository
     }
 
     public async Task<GetAccountTransactionsResult> GetByAccountIdAsync(
-        Guid accountId, int page, int pageSize, CancellationToken ct = default)
+        Guid accountId,
+        Guid customerId,
+        int page,
+        int pageSize,
+        CancellationToken ct = default)
     {
+        var ownsAccount = await _dbContext.Accounts
+            .AsNoTracking()
+            .AnyAsync(
+                x => x.Id == accountId &&
+                     x.CustomerId == customerId,
+                ct);
+
+        if (!ownsAccount)
+            throw new KeyNotFoundException("Account not found.");
+
         var query = _dbContext.Transfers
                       .AsNoTracking()
                       .Where(x =>
@@ -53,11 +67,17 @@ public class TransferReadRepository
     }
 
     public Task<GetTransferResult?> GetByIdAsync(
-        Guid transferId, CancellationToken ct = default)
+        Guid transferId,
+        Guid customerId,
+        CancellationToken ct = default)
     {
         return _dbContext.Transfers
                     .AsNoTracking()
-                    .Where(t => t.Id == transferId)
+                    .Where(t => t.Id == transferId &&
+                        _dbContext.Accounts.Any(a =>
+                            (a.Id == t.FromAccountId ||
+                             a.Id == t.ToAccountId) &&
+                            a.CustomerId == customerId))
                     .Select(x => new GetTransferResult(
                         x.Id,
                         x.RequestId,

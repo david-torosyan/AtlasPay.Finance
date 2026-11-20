@@ -15,12 +15,8 @@ public sealed class WithdrawalsController : ControllerBase
     public async Task<ActionResult<WithdrawalMoneyResult>> Withdraw(
         [FromBody] WithdrawalMoneyRequest request,
         [FromServices] WithdrawalMoneyHandler handler,
-        [FromServices] IWebHostEnvironment environment,
         CancellationToken ct)
     {
-        if (!environment.IsDevelopment())
-            return NotFound();
-
         var command = new WithdrawalMoneyCommand(
             request.RequestId,
             request.AccountId,

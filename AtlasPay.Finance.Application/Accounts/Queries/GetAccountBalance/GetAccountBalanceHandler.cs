@@ -1,9 +1,11 @@
-﻿using AtlasPay.Finance.Application.Abstractions.Persistence;
+﻿using AtlasPay.Finance.Application.Abstractions.Identity;
+using AtlasPay.Finance.Application.Abstractions.Persistence;
 
 namespace AtlasPay.Finance.Application.Accounts.Queries.GetAccountBalance;
 
 public sealed class GetAccountBalanceHandler(
-    IAccountReadRepository repository)
+    IAccountReadRepository repository,
+    ICurrentCustomer currentCustomer)
 {
     public Task<GetAccountBalanceResult?> HandleAsync(
         GetAccountBalanceQuery query,
@@ -14,6 +16,9 @@ public sealed class GetAccountBalanceHandler(
                 "Account ID cannot be empty.",
                 nameof(query));
 
-        return repository.GetBalanceByIdAsync(query.AccountId, ct);
+        return repository.GetBalanceByIdAsync(
+            query.AccountId,
+            currentCustomer.CustomerId,
+            ct);
     }
 }

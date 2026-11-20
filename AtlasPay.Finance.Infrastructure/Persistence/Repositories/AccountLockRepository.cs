@@ -9,6 +9,25 @@ public sealed class AccountLockRepository(
 {
     public async Task<Account> LockAccountAsync(
         Guid accountId,
+        CancellationToken ct = default)
+    {
+        if (accountId == Guid.Empty)
+            throw new ArgumentException(
+                "Account ID cannot be empty.",
+                nameof(accountId));
+
+        var accounts = await dbContext.Accounts
+            .FromSqlInterpolated(
+                $"""SELECT * FROM accounts WHERE "Id" = {accountId} FOR UPDATE""")
+            .AsTracking()
+            .ToListAsync(ct);
+
+        return accounts.SingleOrDefault()
+            ?? throw new KeyNotFoundException("Account not found.");
+    }
+
+    public async Task<Account> LockAccountAsync(
+        Guid accountId,
         Guid customerId,
         CancellationToken ct = default)
     {
@@ -28,8 +47,28 @@ public sealed class AccountLockRepository(
                 .ToListAsync(ct);
 
         return accounts.SingleOrDefault()
-        ?? throw new InvalidOperationException(
-            "Account not found.");
+            ?? throw new KeyNotFoundException(
+                "Account not found.");
+    }
+
+    public async Task<IReadOnlyList<Account>> LockAccountsAsync(
+        Guid firstAccountId,
+        Guid secondAccountId,
+        Guid sourceCustomerId,
+        CancellationToken ct = default)
+    {
+        var accounts = await LockAccountsAsync(
+            firstAccountId,
+            secondAccountId,
+            ct);
+
+        if (accounts.Single(x => x.Id == firstAccountId).CustomerId
+            != sourceCustomerId)
+        {
+            throw new KeyNotFoundException("Source account not found.");
+        }
+
+        return accounts;
     }
 
     public async Task<IReadOnlyList<Account>> LockAccountsAsync(

@@ -7,10 +7,12 @@ public interface ITransferReadRepository
 {
     Task<GetTransferResult?> GetByIdAsync(
         Guid transferId,
+        Guid customerId,
         CancellationToken ct = default);
 
     Task<GetAccountTransactionsResult> GetByAccountIdAsync(
         Guid accountId,
+        Guid customerId,
         int page,
         int pageSize,
         CancellationToken ct = default);

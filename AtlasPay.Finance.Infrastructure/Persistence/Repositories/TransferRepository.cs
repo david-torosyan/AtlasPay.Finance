@@ -32,12 +32,16 @@ public class TransferRepository : ITransferRepository
 
     public async Task<Transfer?> GetByRequestIdAsync(
         Guid requestId,
+        Guid sourceCustomerId,
         CancellationToken ct = default)
     {
         return await _dbContext.Transfers
                     .AsNoTracking()
                     .SingleOrDefaultAsync(
-                         x => x.RequestId == requestId,
+                         x => x.RequestId == requestId &&
+                              _dbContext.Accounts.Any(a =>
+                                  a.Id == x.FromAccountId &&
+                                  a.CustomerId == sourceCustomerId),
                          ct);
     }
 }

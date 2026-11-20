@@ -1,10 +1,12 @@
-﻿using AtlasPay.Finance.Application.Abstractions.Persistence;
+﻿using AtlasPay.Finance.Application.Abstractions.Identity;
+using AtlasPay.Finance.Application.Abstractions.Persistence;
 
 namespace AtlasPay.Finance.Application.Accounts.Commands.ActivateAccount;
 
 
 public sealed class ActivateAccountHandler(
     IAccountRepository accounts,
+    ICurrentCustomer currentCustomer,
     IUnitOfWork unitOfWork)
 {
     public async Task<bool> HandleAsync(
@@ -12,7 +14,7 @@ public sealed class ActivateAccountHandler(
         CancellationToken ct)
     {
         var account = await accounts.GetByIdAsync
-                (command.AccountId, ct);
+                (command.AccountId, currentCustomer.CustomerId, ct);
 
         if (account == null)
             return false;

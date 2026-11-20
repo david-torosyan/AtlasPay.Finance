@@ -1,9 +1,11 @@
-﻿using AtlasPay.Finance.Application.Abstractions.Persistence;
+﻿using AtlasPay.Finance.Application.Abstractions.Identity;
+using AtlasPay.Finance.Application.Abstractions.Persistence;
 
 namespace AtlasPay.Finance.Application.Transfers.Queries.GetTransfer;
 
 public sealed class GetTransferHandler(
-    ITransferReadRepository repository)
+    ITransferReadRepository repository,
+    ICurrentCustomer currentCustomer)
 {
     public Task<GetTransferResult?> HandleAsync(
         GetTransferQuery query,
@@ -13,6 +15,9 @@ public sealed class GetTransferHandler(
             throw new ArgumentException(
                 "Transfer ID cannot be empty.");
 
-        return repository.GetByIdAsync(query.TransferId, ct);
+        return repository.GetByIdAsync(
+            query.TransferId,
+            currentCustomer.CustomerId,
+            ct);
     }
 }

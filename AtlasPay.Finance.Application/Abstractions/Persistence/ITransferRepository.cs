@@ -14,5 +14,6 @@ public interface ITransferRepository
 
     Task<Transfer?> GetByRequestIdAsync(
         Guid requestId,
+        Guid sourceCustomerId,
         CancellationToken ct = default);
 }

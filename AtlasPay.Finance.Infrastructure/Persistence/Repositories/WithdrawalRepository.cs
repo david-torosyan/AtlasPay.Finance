@@ -1,6 +1,8 @@
 ﻿using AtlasPay.Finance.Application.Abstractions.Persistence;
 using AtlasPay.Finance.Domain.Withdrawals.Entities;
 
+using Microsoft.EntityFrameworkCore;
+
 namespace AtlasPay.Finance.Infrastructure.Persistence.Repositories;
 
 public class WithdrawalRepository
@@ -13,10 +15,19 @@ public class WithdrawalRepository
                     .AddAsync(deposit, ct);
     }
 
-    public async Task<Withdrawal?> GetByRequestIdAsync(
-        Guid requestId, CancellationToken ct = default)
+    public Task<Withdrawal?> GetByRequestIdAsync(
+        Guid requestId,
+        Guid customerId,
+        CancellationToken ct = default)
     {
         return _dbContext.Withdrawals
-                        .SingleOrDefault(a => a.RequestId == requestId);
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                withdrawal =>
+                    withdrawal.RequestId == requestId &&
+                    _dbContext.Accounts.Any(account =>
+                        account.Id == withdrawal.AccountId &&
+                        account.CustomerId == customerId),
+                ct);
     }
 }

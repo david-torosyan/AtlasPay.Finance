@@ -7,9 +7,11 @@ public interface IAccountReadRepository
 {
     Task<GetAccountResult?> GetByIdAsync(
         Guid accountId,
+        Guid customerId,
         CancellationToken cancellationToken = default);
 
     Task<GetAccountBalanceResult?> GetBalanceByIdAsync(
         Guid accountId,
+        Guid customerId,
         CancellationToken cancellationToken = default);
 }

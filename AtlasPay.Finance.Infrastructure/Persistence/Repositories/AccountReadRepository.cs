@@ -19,6 +19,7 @@ public class AccountReadRepository
 
     public async Task<GetAccountBalanceResult?> GetBalanceByIdAsync(
         Guid accountId,
+        Guid customerId,
         CancellationToken cancellationToken = default)
     {
         return await (
@@ -28,6 +29,7 @@ public class AccountReadRepository
             join balance in _dbContext.AccountBalances.AsNoTracking()
                 on ledgerAccount.Id equals balance.LedgerAccountId
             where account.Id == accountId
+                && account.CustomerId == customerId
                 && ledgerAccount.Type == LedgerAccountType.Liability
             select new GetAccountBalanceResult(
                 account.Id,
@@ -38,11 +40,13 @@ public class AccountReadRepository
 
     public async Task<GetAccountResult?> GetByIdAsync(
         Guid accountId,
+        Guid customerId,
         CancellationToken ct = default)
     {
         var account = await _dbContext.Accounts
             .AsNoTracking()
-            .Where(a => a.Id == accountId)
+            .Where(a => a.Id == accountId &&
+                        a.CustomerId == customerId)
             .Select(a => new
             {
                 a.Id,
@@ -51,6 +55,9 @@ public class AccountReadRepository
                 a.Status
             })
             .SingleOrDefaultAsync(ct);
+
+        if (account is null)
+            return null;
 
         var balance = await (
             from ledgerAccount in _dbContext.LedgerAccounts
@@ -68,7 +75,7 @@ public class AccountReadRepository
                     $"Primary liability balance not found for account {accountId}.");
 
         return new GetAccountResult(
-           account!.Id,
+           account.Id,
            account.CustomerId,
            account.Currency,
            account.Status,

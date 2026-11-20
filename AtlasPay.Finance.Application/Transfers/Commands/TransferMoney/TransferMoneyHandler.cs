@@ -1,6 +1,8 @@
 ﻿using AtlasPay.Contracts.Events.Finance;
 using AtlasPay.Contracts.Events.Finance.V2;
+using AtlasPay.Finance.Application.Abstractions.Identity;
 using AtlasPay.Finance.Application.Abstractions.Persistence;
+using AtlasPay.Finance.Application.Exceptions;
 using AtlasPay.Finance.Application.Transfers.Exceptions;
 using AtlasPay.Finance.Domain.Accounts.ValueObjects;
 using AtlasPay.Finance.Domain.Ledger.Entities;
@@ -18,6 +20,7 @@ public sealed class TransferMoneyHandler(
     ITransferLedgerRepository transferLedgerRepository,
     ITransferRepository transferRepository,
     ILedgerTransactionRepository ledgerTransactionRepository,
+    ICurrentCustomer currentCustomer,
     IOutboxRepository outboxRepository)
 {
     public async Task<Guid> HandleAsync(
@@ -39,9 +42,11 @@ public sealed class TransferMoneyHandler(
             command.ToAccountId,
             amount);
 
+        var customerId = currentCustomer.CustomerId;
+
         // Fast path: the request may already be completed.
         var existing = await transferRepository
-            .GetByRequestIdAsync(command.RequestId, ct);
+            .GetByRequestIdAsync(command.RequestId, customerId, ct);
 
         if (existing is not null)
             return ResolveExisting(existing, command);
@@ -59,6 +64,7 @@ public sealed class TransferMoneyHandler(
                     await accountLockRepository.LockAccountsAsync(
                         command.FromAccountId,
                         command.ToAccountId,
+                        customerId,
                         token);
 
                 // Check again after waiting for account locks.
@@ -66,6 +72,7 @@ public sealed class TransferMoneyHandler(
                 var alreadyProcessed = await transferRepository
                     .GetByRequestIdAsync(
                         command.RequestId,
+                        customerId,
                         token);
                 if (alreadyProcessed is not null)
                 {
@@ -86,7 +93,7 @@ public sealed class TransferMoneyHandler(
                 if (sourceAccount.Status != AccountStatus.Active ||
                     destinationAccount.Status != AccountStatus.Active)
                 {
-                    throw new InvalidOperationException(
+                    throw new FinancialOperationConflictException(
                         "Both accounts must be active.");
                 }
 
@@ -94,7 +101,7 @@ public sealed class TransferMoneyHandler(
                 if (sourceAccount.Currency != amount.Currency ||
                     destinationAccount.Currency != amount.Currency)
                 {
-                    throw new InvalidOperationException(
+                    throw new FinancialOperationConflictException(
                         "Account currency mismatch.");
                 }
 
@@ -125,6 +132,12 @@ public sealed class TransferMoneyHandler(
                         "Ledger account currency mismatch.");
                 }
 
+                if (source.Balance.Balance.Amount < amount.Amount)
+                {
+                    throw new FinancialOperationConflictException(
+                        "Insufficient customer funds.");
+                }
+
                 // 7. Create double-entry ledger transaction.
                 var ledgerTransaction =
                     LedgerTransaction.Create(
@@ -152,7 +165,7 @@ public sealed class TransferMoneyHandler(
 
                 destination.Balance.Credit(
                     amount,
-                    source.LedgerAccount.Type);
+                    destination.LedgerAccount.Type);
 
                 // 10. Complete business transfer.
                 transfer.Complete();
@@ -193,7 +206,7 @@ public sealed class TransferMoneyHandler(
             },
             ct);
 
-            return transfer.Id;
+            return resultId;
         }
         catch (DuplicateTransferRequestException)
         {
@@ -201,10 +214,13 @@ public sealed class TransferMoneyHandler(
             // The transaction has already rolled back.
             // Re-read the winning result without tracking it.
             var winner = await transferRepository
-                .GetByRequestIdAsync(command.RequestId, ct);
+                .GetByRequestIdAsync(
+                    command.RequestId,
+                    customerId,
+                    ct);
 
             if (winner is null)
-                throw;
+                throw new TransferRequestConflictException();
 
             return ResolveExisting(winner, command);
         }
@@ -224,7 +240,7 @@ public sealed class TransferMoneyHandler(
 
         if (existing.Status != TransferStatus.Completed)
         {
-            throw new InvalidOperationException(
+            throw new FinancialOperationConflictException(
                 $"Existing transfer is in {existing.Status} status.");
         }
 
