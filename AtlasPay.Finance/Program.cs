@@ -18,7 +18,6 @@ using AtlasPay.Finance.Exceptions;
 using AtlasPay.Finance.Infrastructure;
 using AtlasPay.Finance.Infrastructure.Persistence.Seeders;
 using AtlasPay.Security.Authentication;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
