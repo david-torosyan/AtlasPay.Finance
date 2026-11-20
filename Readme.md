@@ -1,109 +1,89 @@
 # AtlasPay.Finance
 
-AtlasPay.Finance is a .NET 10 financial microservice responsible for account management, money transfers, deposits, withdrawals, and double-entry ledger accounting.
+AtlasPay.Finance is the AtlasPay money-management service. It provides customer accounts, transfers, withdrawals, internal deposits, double-entry accounting, and reliable finance events.
 
-The service is built using Clean Architecture, CQRS principles, PostgreSQL, Entity Framework Core, and Apache Kafka.
+The service uses .NET 10, ASP.NET Core, Entity Framework Core, PostgreSQL, Keycloak JWT authentication, and Apache Kafka.
 
-## Core Functionality
+## Core functionality
 
-### Account Management
-- Manage financial accounts and their balances.
-- Support account-based transaction history with pagination.
-- Maintain account and ledger account relationships.
+- Create and manage customer accounts in AMD, USD, or EUR.
+- Read account details, balances, and paginated transfer history.
+- Transfer money between customers using the sender's account.
+- Withdraw money with customer-funds and bank-cash checks.
+- Credit accounts through the internal development deposit endpoint.
+- Record every money movement as a balanced double-entry ledger transaction.
+- Make financial requests idempotent through a unique `RequestId`.
+- Save integration events through a transactional outbox and publish them to Kafka.
 
-### Financial Operations
-- **Transfers:** Move funds between accounts atomically.
-- **Deposits:** Credit funds to an account.
-- **Withdrawals:** Debit funds with balance validation.
-- Support request identifiers for financial operation idempotency.
-- Track financial operation statuses and timestamps.
+## Customer authorization
 
-### Double-Entry Ledger
-- Record financial movements using balanced debit and credit entries.
-- Maintain an auditable history of financial transactions.
-- Separate ledger entries from account balance records.
-- Execute related financial changes within PostgreSQL transactions.
+Customer endpoints require a valid JWT containing a `customer_id` claim.
 
-## Transactional Outbox Pattern
+- Customers can access and operate only on their own accounts.
+- A transfer must start from an account owned by the authenticated customer.
+- The destination account may belong to another customer.
+- Transfer details are available to the owner of either participating account.
+- Unknown or unauthorized resources are returned as `404 Not Found`.
 
-- Persist integration events alongside financial operations.
-- Store events in the `outbox_messages` table.
-- Use a dedicated background Worker to publish pending events.
-- Atomically claim messages using PostgreSQL `FOR UPDATE SKIP LOCKED`.
-- Support worker ownership, temporary leases, and retry scheduling.
-- Track successful publications and failed delivery attempts.
+## Customer API
 
-## Apache Kafka Integration
-
-- Publish financial events to the `finance.events` topic.
-- Use `Confluent.Kafka` with producer idempotence and `acks=all`.
-- Include stable event identifiers and event-type headers.
-- Mark outbox events as published after Kafka delivery confirmation.
-- Support at-least-once event delivery through the Outbox Pattern.
-
-## Architecture
-
-- **Domain:** Financial entities, value objects, and business rules.
-- **Application:** Use cases, CQRS handlers, and persistence abstractions.
-- **Infrastructure:** EF Core, PostgreSQL repositories, and persistence configuration.
-- **API:** HTTP endpoints for financial operations.
-- **Worker:** Background outbox processing and Kafka publishing.
-- **IntegrationTests:** Database-backed integration tests.
-
-## Technology Stack
-
-.NET 10 · ASP.NET Core · EF Core · PostgreSQL 17 · Apache Kafka · Confluent.Kafka · Podman · Clean Architecture · CQRS
-
-## Current Status
-
-Core financial operations and the Outbox-to-Kafka publishing workflow are implemented. Successful publication of three outbox events has been verified.
-
-Remaining work includes comprehensive financial correctness tests, concurrency testing, failure recovery, retry improvements, security hardening, observability, and Kubernetes deployment.
-
-## API Endpoints
-
-### Accounts
-
-| Method | Endpoint | Description |
+| Method | Endpoint | Purpose |
 |---|---|---|
-| `POST` | `/api/accounts` | Create a financial account |
-| `GET` | `/api/accounts/{accountId}` | Retrieve account details |
-| `GET` | `/api/accounts/{accountId}/balance` | Retrieve the current account balance |
-| `GET` | `/api/accounts/{accountId}/transactions` | Retrieve paginated account transfer history |
+| `POST` | `/api/accounts` | Create an account |
+| `GET` | `/api/accounts/{accountId}` | Get account details |
+| `GET` | `/api/accounts/{accountId}/balance` | Get the ledger balance |
+| `GET` | `/api/accounts/{accountId}/transactions` | Get paginated transfer history |
+| `POST` | `/api/accounts/{accountId}/activate` | Activate a pending account |
+| `POST` | `/api/accounts/{accountId}/freeze` | Freeze an active account |
+| `POST` | `/api/accounts/{accountId}/unfreeze` | Unfreeze an account |
+| `POST` | `/api/transfers` | Transfer money |
+| `GET` | `/api/transfers/{transferId}` | Get transfer details |
+| `POST` | `/api/withdrawals` | Withdraw money |
 
-### Transfers
+Transaction history accepts `page` and `pageSize`. Defaults are page `1` and page size `20`; the maximum page size is `100`.
 
-| Method | Endpoint | Description |
+## Internal development endpoints
+
+These endpoints return `404` outside the Development environment:
+
+| Method | Endpoint | Purpose |
 |---|---|---|
-| `POST` | `/api/transfers` | Transfer funds between accounts |
-| `GET` | `/api/transfers/{transferId}` | Retrieve transfer details |
-| `GET` | `/api/transfers/by-request/{requestId}` | Retrieve a transfer by its request identifier |
+| `POST` | `/api/deposits` | Credit a customer account |
+| `POST` | `/api/transfers/{transferId}/reverse` | Reverse a completed transfer |
+| `GET` | `/api/ledger/reconciliation` | Compare stored and ledger-derived balances |
+| `GET` | `/api/ledger/integrity` | Find unbalanced ledger transactions |
 
-### Deposits
+## Financial guarantees
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/api/deposits` | Deposit funds into an account |
-| `GET` | `/api/deposits/{depositId}` | Retrieve deposit details |
+- Transfers, deposits, withdrawals, ledger postings, balances, and outbox messages are committed in one PostgreSQL transaction.
+- Account rows are locked during money movement to serialize concurrent balance changes.
+- Accounts must be active and use the requested currency.
+- Transfers and withdrawals cannot overdraw a customer balance.
+- Every posted ledger transaction must have equal debits and credits per currency.
+- Reusing a `RequestId` with the same request returns the original result; different details return `409 Conflict`.
 
-### Withdrawals
+## Finance events
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/api/withdrawals` | Withdraw funds from an account |
-| `GET` | `/api/withdrawals/{withdrawalId}` | Retrieve withdrawal details |
+Successful operations write `TransferCompletedV2`, `DepositCompletedV2`, `WithdrawalCompletedV2`, or `TransferReversedV2` to the outbox.
 
-### API Behavior
+`AtlasPay.Finance.Worker` claims pending messages, publishes them to Kafka with idempotent producer settings, and records publication or retry state. Delivery is at least once, so consumers should deduplicate by event ID.
 
-- Financial operations use request identifiers to support idempotency.
-- Money movements and corresponding ledger entries are committed atomically.
-- Account transaction history supports `page` and `pageSize` query parameters.
-- Successfully committed financial operations generate persistent outbox events.
-- Outbox events are published asynchronously to the Kafka `finance.events` topic.
-- Kafka publishing is handled by `AtlasPay.Finance.Worker`, not the HTTP API.
+## Solution structure
 
-dotnet ef migrations add AddWithdrawals --project AtlasPay.Finance.Infrastructure --startup-project AtlasPay.Finance --context FinanceDbContext --output-dir Persistence/Migrations
+- `AtlasPay.Finance.Domain` — entities, value objects, and ledger rules.
+- `AtlasPay.Finance.Application` — commands, queries, handlers, and repository contracts.
+- `AtlasPay.Finance.Infrastructure` — EF Core, PostgreSQL repositories, locking, and migrations.
+- `AtlasPay.Finance` — authenticated HTTP API.
+- `AtlasPay.Finance.Worker` — transactional-outbox Kafka publisher.
+- `AtlasPay.Finance.IntegrationTests` — PostgreSQL-backed integration tests.
 
+## Build and run
+
+Configure `ConnectionStrings:FinanceDatabase`, JWT `Authentication:Authority` and `Authentication:Audience`, plus worker `Kafka:BootstrapServers` and `Kafka:Topic`.
+
+```powershell
 dotnet ef database update --project AtlasPay.Finance.Infrastructure --startup-project AtlasPay.Finance --context FinanceDbContext
-
-dotnet run --project .\AtlasPay.Finance.Worker\AtlasPay.Finance.Worker.csproj
+dotnet build AtlasPay.Finance.slnx
+dotnet run --project AtlasPay.Finance
+dotnet run --project AtlasPay.Finance.Worker
+```
