@@ -6,6 +6,7 @@ using AtlasPay.Finance.Application.Accounts.Commands.FreezeAccount;
 using AtlasPay.Finance.Application.Accounts.Commands.UnfreezeAccount;
 using AtlasPay.Finance.Application.Accounts.Queries.GetAccount;
 using AtlasPay.Finance.Application.Accounts.Queries.GetAccountBalance;
+using AtlasPay.Finance.Application.Accounts.Queries.GetAccounts;
 using AtlasPay.Finance.Application.Deposits.Commands.DepositMoney;
 using AtlasPay.Finance.Application.Ledger.Queries.CheckLedgerIntegrity;
 using AtlasPay.Finance.Application.Ledger.Queries.ReconcileLedger;
@@ -35,6 +36,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddScoped<CreateAccountHandler>();
 builder.Services.AddScoped<GetAccountHandler>();
+builder.Services.AddScoped<GetAccountsHandler>();
 builder.Services.AddScoped<ActivateAccountHandler>();
 builder.Services.AddScoped<FreezeAccountHandler>();
 builder.Services.AddScoped<UnfreezeAccountHandler>();

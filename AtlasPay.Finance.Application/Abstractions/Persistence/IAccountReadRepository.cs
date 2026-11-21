@@ -10,6 +10,10 @@ public interface IAccountReadRepository
         Guid customerId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<GetAccountResult>> GetByCustomerIdAsync(
+        Guid customerId,
+        CancellationToken cancellationToken = default);
+
     Task<GetAccountBalanceResult?> GetBalanceByIdAsync(
         Guid accountId,
         Guid customerId,

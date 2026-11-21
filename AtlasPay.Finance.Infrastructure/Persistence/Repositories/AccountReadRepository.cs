@@ -81,4 +81,26 @@ public class AccountReadRepository
            account.Status,
            balance.Value);
     }
+
+    public async Task<IReadOnlyList<GetAccountResult>> GetByCustomerIdAsync(
+        Guid customerId,
+        CancellationToken ct = default)
+    {
+        return await (
+            from account in _dbContext.Accounts.AsNoTracking()
+            join ledgerAccount in _dbContext.LedgerAccounts.AsNoTracking()
+                on account.Id equals ledgerAccount.AccountId
+            join balance in _dbContext.AccountBalances.AsNoTracking()
+                on ledgerAccount.Id equals balance.LedgerAccountId
+            where account.CustomerId == customerId
+                && ledgerAccount.Type == LedgerAccountType.Liability
+            orderby account.Currency, account.Id
+            select new GetAccountResult(
+                account.Id,
+                account.CustomerId,
+                account.Currency,
+                account.Status,
+                balance.Balance.Amount)
+        ).ToListAsync(ct);
+    }
 }

@@ -5,6 +5,7 @@ using AtlasPay.Finance.Application.Accounts.Commands.FreezeAccount;
 using AtlasPay.Finance.Application.Accounts.Commands.UnfreezeAccount;
 using AtlasPay.Finance.Application.Accounts.Queries.GetAccount;
 using AtlasPay.Finance.Application.Accounts.Queries.GetAccountBalance;
+using AtlasPay.Finance.Application.Accounts.Queries.GetAccounts;
 using AtlasPay.Finance.Application.Transfers.Queries.GetAccountTransactions;
 using AtlasPay.Finance.Contracts.Accounts;
 using Microsoft.AspNetCore.Authorization;
@@ -19,13 +20,16 @@ public class AccountsController : Controller
 {
     private readonly CreateAccountHandler _createHandler;
     private readonly GetAccountHandler _getHandler;
+    private readonly GetAccountsHandler _getAccountsHandler;
 
     public AccountsController(
        CreateAccountHandler createHandler,
-       GetAccountHandler getHandler)
+       GetAccountHandler getHandler,
+       GetAccountsHandler getAccountsHandler)
     {
         _createHandler = createHandler;
         _getHandler = getHandler;
+        _getAccountsHandler = getAccountsHandler;
     }
 
 
@@ -46,6 +50,22 @@ public class AccountsController : Controller
         return StatusCode(
             StatusCodes.Status201Created,
             new CreateAccountResponse(accountId));
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<IReadOnlyList<GetAccountResponse>>> GetAll(
+        CancellationToken cancellationToken)
+    {
+        var results = await _getAccountsHandler.HandleAsync(
+            new GetAccountsQuery(),
+            cancellationToken);
+
+        return Ok(results.Select(result => new GetAccountResponse(
+            result.AccountId,
+            result.CustomerId,
+            result.Currency.ToString(),
+            result.Status.ToString(),
+            result.Balance)));
     }
 
     [HttpGet("{accountId:guid}")]

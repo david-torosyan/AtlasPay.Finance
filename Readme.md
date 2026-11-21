@@ -30,6 +30,7 @@ Customer endpoints require a valid JWT containing a `customer_id` claim.
 | Method | Endpoint | Purpose |
 |---|---|---|
 | `POST` | `/api/accounts` | Create an account |
+| `GET` | `/api/accounts` | Get the authenticated customer's accounts |
 | `GET` | `/api/accounts/{accountId}` | Get account details |
 | `GET` | `/api/accounts/{accountId}/balance` | Get the ledger balance |
 | `GET` | `/api/accounts/{accountId}/transactions` | Get paginated transfer history |
